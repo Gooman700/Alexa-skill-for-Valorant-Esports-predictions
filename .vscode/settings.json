@@ -1,0 +1,5 @@
+{
+  "latex-workshop.message.latexlog.exclude": [
+    "Infinite glue shrinkage found in box being split"
+  ]
+}

@@ -1,2 +1,169 @@
-\chapter{An Appendix of Some Kind}
+\chapter{Dataset Features}
+\begin{longtable}{|>{\raggedright\arraybackslash}p{3cm}|p{12cm}|}
+\caption{Data Dictionary: Tournament, Match, and Player Statistics}
+\label{tab:data-dictionary}
+\\
+\hline
+\textbf{Term} & \textbf{Definition} \\
+\hline
+\endfirsthead
+\multicolumn{2}{|c|}{(continued)} \\
+\hline
+\textbf{Term} & \textbf{Definition} \\
+\hline
+\endhead
 
+\hline
+\multicolumn{2}{|r|}{(continued on next page)} \\
+\endfoot
+
+\hline
+\endlastfoot
+
+\multicolumn{2}{|c|}{\textbf{Tournament \& Match Information}} \\
+\hline
+Tournament ID & The ID for the tournament \\
+\hline
+Stage ID & The ID for the stage \\
+\hline
+Match Type ID & The ID for the match type \\
+\hline
+Match ID & The ID for the match \\
+\hline
+Game ID & The ID for the map that was played from the match \\
+\hline
+\multicolumn{2}{|c|}{\textbf{Agent \& Map Statistics}} \\
+\hline
+Pick Rate & How many times an agent has been picked \\
+\hline
+Total Maps Played & How many times a map has been played \\
+\hline
+Attacker Side Win Percentage & The percentage of rounds won by the attacking side on that map \\
+\hline
+Defender Side Win Percentage & The percentage of rounds won by the defending side of that map \\
+\hline
+Total Wins By Map & How many times the team won with the given agent on that map \\
+\hline
+Total Loss By Map & How many times the team lost with the given agent on that map \\
+\hline
+\multicolumn{2}{|c|}{\textbf{Economy Statistics}} \\
+\hline
+Loadout Value & The total value of all the weapons, abilities, and shields purchased by all players on the team in a round \\
+\hline
+Remaining Credits & How much credits a team has after spending \\
+\hline
+Type & The economy round type (eco, semi-eco, semi-buy, full buy) \\
+\hline
+Pistol Round & Team won the pistol round \\
+\hline
+Eco (won) & Team spent 0-5k credits to win a round \\
+\hline
+\$ (Semi-eco) & Team spent 5-10k credits to win a round \\
+\hline
+\$\$ (Semi-buy) & Team spent 10-20k credits to win a round \\
+\hline
+\$\$\$ (Full buy) & Team spent over 20k credits to win a round \\
+\hline
+Initiated & How many times the team engage a specific economy round (eco, semi-eco, semi-buy, full buy) \\
+\hline
+Won & How many times the team won a specific economy round (eco, semi-eco, semi-buy, full buy) \\
+\hline
+\multicolumn{2}{|c|}{\textbf{Player Elimination Statistics}} \\
+\hline
+Eliminator Team & The team the eliminator is on \\
+\hline
+Eliminator & The player who eliminated \\
+\hline
+Eliminator Agent & The agent the eliminator played \\
+\hline
+Eliminated Team & The team the eliminated is on \\
+\hline
+Eliminated & The player who got eliminated \\
+\hline
+Eliminated Agent & The agent the eliminated played \\
+\hline
+Kills & How many times a player eliminated the specific player on their agent \\
+\hline
+\multicolumn{2}{|c|}{\textbf{Multi-Kill \& Clutch Statistics}} \\
+\hline
+2k & How many times the player achieved two eliminations \\
+\hline
+3k & How many times the player achieved three eliminations in a single round \\
+\hline
+4k & How many times the player achieved four eliminations in a single round \\
+\hline
+5k & How many times the player achieved five eliminations in a single round \\
+\hline
+1v1 & How many times the played won against one player from the enemy team when both are the sole players left in a single round \\
+\hline
+1v2 & How many times the player won against two players from the enemy team when the player is the sole player left on their team in a single round \\
+\hline
+1v3 & How many times the player won against three players from the enemy team when the player is the sole player left on their team in a single round \\
+\hline
+1v4 & How many times the player won against four players from the enemy team when the player is the sole player left on their team in a single round \\
+\hline
+\multicolumn{2}{|c|}{\textbf{Individual Player Performance}} \\
+\hline
+Econ & The economy rating of a player (damage dealt per 1000 credits spent) \\
+\hline
+Spike Plants & How many times a player planted the spike \\
+\hline
+Spike Defuse & How many times a player defused the spike \\
+\hline
+Rating (R) & Rating the player's performance taking account all the stats available in a match \\
+\hline
+Average Combat Score (ACS) & The average combat score over the whole match for the player calculated based on damage, kills, multi-kills and non-damaging assists \\
+\hline
+Kills & The number of elimination in a match \\
+\hline
+Deaths & The number of deaths in a a match \\
+\hline
+Assists & The number of assists in a match \\
+\hline
+Kills - Deaths (KD) & The kills-to-deaths differential \\
+\hline
+Kill, Assist, Survive, Trade \% (KAST) & \% of rounds the player either got a kill, assist, traded a kill or survived \\
+\hline
+Average Damage Per Round (ADR) & The average damage the player achieved per round \\
+\hline
+Kills Per Round (KPR) & The average kills the player achieved per round \\
+\hline
+Assists Per Round (APR) & The average assists the player achieved per round \\
+\hline
+First Kills Per Round (FKPR) & The average first kills the player achieved per round \\
+\hline
+First Deaths Per Round (FDPR) & The average first deaths the player achieved per round \\
+\hline
+Headshot \% & \% of bullets that were headshots \\
+\hline
+Clutch Success \% & \% of clutches the player were able to clutch \\
+\hline
+Clutches (won/played) & The ratio of won-to-played clutches \\
+\hline
+Maximum Kills in a Single Map & The maximum elimination the player achieved in a single map \\
+\hline
+First Kills & How many first elimination the player achieved \\
+\hline
+First Deaths & How many first deaths the player achieved \\
+\hline
+Kills - Deaths (FKD) & The first kills-to-deaths differential \\
+\hline
+\multicolumn{2}{|c|}{\textbf{Round Win/Loss Conditions}} \\
+\hline
+Elimination & The amount of times a team has won by eliminating the enemy team \\
+\hline
+Detonated & The amount of times a team has won by planting the spike and the spike does not get defused by the enemy team \\
+\hline
+Defuse & The amount of times the team has won by defusing the spike \\
+\hline
+Time Expiry (No Plant) & The amount of times the team has won when the opposing team does not plant in time \\
+\hline
+Eliminated & The amount of times the team has lost because they got eliminated \\
+\hline
+Defuse Failed & The amount of times the team has has lost because they failed to defuse the spike \\
+\hline
+Detonation Denied & The amount of times the team has lost because the opposing team defused the spike \\
+\hline
+Time Expiry (Failed to Plant) & The amount of times the team has lost because they failed to plant the spike in time \\
+\hline
+\end{longtable}

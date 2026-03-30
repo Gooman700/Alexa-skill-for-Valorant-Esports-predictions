@@ -1,10 +1,7 @@
 \chapter{Technology Survey}
 \label{chap:technology survey}
 
-\section{Researching Available Technologies}
-This section looks into Amazon Alexa and Google Home, as well as the technologies available to develop for them.
-
-\subsection{Amazon Alexa and Google Home}
+\section{Amazon Alexa and Google Home}
 When it comes to speech-powered smart speakers, there are two superpowers that come to mind: Amazon Echo, and Google Home. All of Amazon's products use their virtual assistant 'Alexa'. For both, users can 'invoke' the smart-speaker with a 'wake command', usually a short word or phrase such as "Alexa" or "Hey Google". Developers can create their own skills or actions for these smart-speakers, which users can then download, invoke, and use.
 \begin{figure}[H]
     \centering
@@ -22,9 +19,9 @@ When it comes to speech-powered smart speakers, there are two superpowers that c
 
 To develop an Amazon Alexa skill, first an Amazon developer account must be created, which will grant access to the Amazon developer console. Here, you can create new skills and edit existing ones, all from within their online application. There are two default programming languages available—Python and JavaScript. It is possible to choose any other language, though they lack the same level of support and number of built-in features in comparison to the default languages. From there, you must either choose to host your skill on AWS Lambda, or to provision your own endpoint to run your code locally. Finally, you are provided with an environment where you can set up invocations, change parameters, and code your skill.
 
-After researching into the process required to create a new Google Home action, it has become apparent that `conversational actions' have been depricated in favour of `app actions' \footnote{\url{https://developers.google.com/assistant/ca-sunset}}. This means that any new actions being made for Google Home can only communicate with their corresponding apps, of which I am not planning on making. With Alexa having a larger audience combined with Google `sunsetting' conversational actions, it is clear that I shall not be pursuing Google Home as a launchpad for my project, but rather I shall be going with Amazon.
+After researching into the process required to create a new Google Home action, it has become apparent that `conversational actions' have been depricated in favour of `app actions', as can be seen in the google documentation\footnote{\url{https://developers.google.com/assistant/ca-sunset}}. This means that any new actions being made for Google Home can only communicate with their corresponding apps, of which I am not planning on making. With Alexa having a larger audience combined with Google `sunsetting' conversational actions, it is clear that I shall not be pursuing Google Home as a launchpad for my project, but rather I shall be going with Amazon.
 
-\subsection{Potential Development Options}
+\section{Potential Development Options}
 In choosing to move forward with a skill developed for Amazon, it is now pertinent to research further into the benefits and drawbacks of each option at hand, allowing me to make informed decisions about the choices I make, from deciding a primary programming language, to determining where the final skill is going to be hosted.
 
 The first decision that needs to be made concerns the primary programming language of the project. The chosen language will greatly impact the difficulty of the project, through the documentation and pre-built packages accessible to me, as well as my prior understanding of it. If the language has not been widely used for machine learning purposes, then there is a risk that there will be a lack of support surrounding it, requiring me to spend more time implementing the basics that could otherwise be considered boilerplate. However, if the language is also too complicated, especially if I haven't used it before, there might be a steep learning curve which could considerably impact the preliminary stages of development. Finding the right balance is going to be key to putting myself in the best starting position to achieve my goals.
@@ -37,20 +34,49 @@ However, after minimal research, there is a clear answer to this question. Pytho
     \item SciPy
 \end{itemize}
 
-\section{Exploring Machine Learning Approaches}
-This section will describe what machine learning is, and the categories that it falls into, discussing the benefits and drawbacks of each.
+\section{The Dataset}
+To create a machine learning model with any degree of accuracy past randomly guessing the winner, related features must first be obtained. For every Valorant match, there are a lot of features attributed to it, ranging from one as trivial as who the winner was, to as granular as an individual player's elimination count on a specific round. This allows the model to firstly use a small amount of simple features to be initially set up, with more derived, complex features being implmented at a later date.
 
-\subsection{Machine Learning Overview}
+There are two methods of obtaining a suitable dataset for this project: creating it myself, or using a pre-made one. In order to create my own dataset, I would need to first develop a web-scraper that requests  the HTML content of the match results page for every VCT match since the inaugural kick-off in 2021. For each result, key elements within the page would be extracted with the use of XPath or CSS selectors, depending on the unique identifiers for the desired element. For example, to acquire the team names from a match results page on vlr.gg, I would have the query this page with the CSS selector of `\#div.wf-title-med'. Both elements containing each team's name have the class `wf-title-med', and they are the only two elements on the page with that class. Asking for the text-content of the returned objects would provide both team names as strings. This must be replicated for additional features, which becomes substantially time-consuming. Furthermore, I would need to verify that the data scraped contains no anomalies, and is also standardised.
+
+With an existing dataset, I would need to ensure that it contains enough features to create a model capable of capturing a wealth of underlying relationships between different features and the winning team. Simply possessing many features does not equate to an acceptable understanding of the data. Two different features could both communicate the same information, and in this case, there is just a redundant feature. Additionally, the data would still need to be checked for inconsistencies and anomalies. Any datasets found would need to be used in accordance with the creator's copyright license.
+
+Due to the possibly extensive time period that creating my own dataset could span, finding a pre-made one was prioritised, and after searching, a comprehensive dataset was acquired. This can be viewed on the author's kaggle page\footnote{\scriptsize\url{https://www.kaggle.com/datasets/ryanluong1/valorant-champion-tour-2021-2023-data}}. \autoref{tab:data-dictionary} contains an exhaustive data dictionary of the features from the dataset and their meaning, whereas the following subsection will go into depth about particularly important features.
+
+\subsection*{Dataset Features}
+Features can be categorised into two main focuses: teams and players. Features relating to players hold information pertaining to an individual player, such as their Average Combat Score, which gives an indication as to how good the constituent players of the team are. Features relating to teams, such as `Team A Attacker Score', give high-level information about how the team fared against another team in this match, and can be used to create understanding of team dynamics within the model. In the table below, where a feature is written as `feature X', this means that there is both `feature A' and `feature B', for each team respectively.
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabularx}{\linewidth}{|>{\raggedright\arraybackslash}p{3cm}|>{\raggedright\arraybackslash}p{5cm}|>{\raggedright\arraybackslash}X|}
+        \hline
+        \textbf{Feature} & \textbf{Definition} & \textbf{Why It Is Useful} \\ \hline
+        Team X & The name of one of the teams competing in the match. & Can be used as an identifier when grouping data by team. \\ \hline
+        Map & The name of the map that the match was played on. & Can be used to derive map-specific performance. \\ \hline
+        Team X Score & How many rounds the team won in total (e.g., 13). & Can be used to calculate the winner and team-level performance measures such as win percentage over the last 10 games. \\ \hline
+        Team X Attacker Score & The number of rounds the team won while on the attacking side. & Can be used to calculate the team's attacking proficiency. \\ \hline
+        Team X Defender Score & The number of rounds the team won while on the defending side. & Can be used to calculate the team's defending proficiency and, with attacker score and map, assess map-side bias. \\ \hline
+        KAST & The percentage of rounds in a match where a player got a kill, assist, traded a kill, or survived. & Can be used to determine how well a player contributes within team play. \\ \hline
+        First Kills & How many times in a match the player got the first elimination of a round. & Good indicator of player aggression; paired with a teammate's high KAST can indicate good teamwork. \\ \hline
+        First Deaths & How many times in a match the player was first eliminated. & Lower values generally indicate better opening-round survivability. \\ \hline
+        Average Combat Score & A player score based on damage, kills, multi-kills, and non-damaging assists. & A useful aggregate feature for indicating individual performance. \\ \hline
+        Pistol Won & A flag represented by the feature `Type' in the `Eco\_Stats' table that signifies the team won the pistol round. & Winning pistol round strongly increases the chance of winning the following round, giving early match momentum. \\ \hline
+    \end{tabularx}
+    \caption{Key Dataset Features and Their Predictive Utility}
+    \label{tab:key-dataset-features}
+\end{table}
+
+\section{Exploring Machine Learning Approaches}
 "Machine learning (ML) is a field of study in artificial intelligence that is concerned with the development and study of statistical algorithms that can learn from data and generalise to unseen data and thus perform tasks without explicit instructions" \cite{Koza1996}.
 
 Machine learning is used in a vast amount of people's lives every month, perhaps without them even knowing it. For example, Facebook—the world's 2nd most popular social network by number of users \cite{BacklinkoTeam2025}—"uses machine learning to generate the estimated action rate and the ad quality score used in the total value equation" \cite{Facebook2020}. What this means is that possible adverts that might be shown to the user are scored, by a machine learning algorithm, as to how successful they might be in influencing that users decision, as well as the quality of the advert. Facebook now has 3.07 billion monthly active users as of October 2025, and did have 3.65 billion in 2024 \cite{NaveenKumar2025}, which is a lot of people being exposed to ML via only one platform.
 
 Recently, bookmakers have also shifted towards using predictive machine learning models to generate the odds of a specific outcome, which they can then use to sell bets to customers \cite{RhysGregory2025}. This is the most similar example of ML being used in industry to my project.
 
-\subsection{Machine Learning Approaches}
 To successfully accomplish the aim that I have set for myself, some form of machine learning approach will need to be implemented. There is a vast amount of different training and prediction algorithms available to me, all of which are better suited to different tasks. ML algorithms fall under 4 categories, supervised, unsupervised, semi-supervised, and reinforcement learning \cite{Sarker2021}.
 
-\subsubsection{Supervised Learning}
+\subsection*{Supervised Learning}
 Supervised learning is the process of teaching a machine by example. The algorithm is provided with a dataset where the human knows the correct outputs for the set of inputs. The machine makes predictions using the provided data, and is corrected when wrong, until the algorithm has been refined enough for there to be a high degree of \gls{accuracy}. This approach is well suited to predicting or classifying new, unseen data based off of the patterns recognised from the labelled training data. However, supervised learning is not as good at discovering new patterns, only at predicting based off of existing ones. Also, it requires a sufficiently large, accurately labelled dataset, which is time consuming and expensive to procure/produce. \cite{SupervisedLearning}
 
 \begin{figure}[H]
@@ -60,7 +86,7 @@ Supervised learning is the process of teaching a machine by example. The algorit
     \label{fig:supervised-learning}
 \end{figure}
 
-\subsubsection{Unsupervised Learning}
+\subsection*{Unsupervised Learning}
 Unsupervised learning is where the machine studies large, unlabelled datasets to pick out patterns and organise the data in some way. There is no correction taking place from the human, since the data is not labelled. Given a large set of data, and without human input, unsupervised learning algorithms will discover hidden patterns or data groupings automatically. Unsupervised learning lends itself nicely to exploratory data analysis, being able to collate data points into separate 'clusters', or to identify outliers and anomalies from a dataset. Usually, the datasets used are acquired 'cheaply', such as web-crawling, where there is an enormous quantity of data available without a large cost. Unsupervised learning is however less useful when a precise output is required. Due to the nature of being trained on unlabelled data, the machine doesn't know what right answers are, only outputting the patterns it sees, in many cases being categories that are not meaningful or relevant \cite{TeamDigitalDefynd:online}.
 
 \begin{figure}[H]
@@ -70,10 +96,10 @@ Unsupervised learning is where the machine studies large, unlabelled datasets to
     \label{fig:unsupervised-learning}
 \end{figure}
 
-\subsubsection{Semi-supervised Learning}
+\subsection*{Semi-supervised Learning}
 Semi-supervised learning is an approach that combines supervised and unsupervised learning by using both labelled and unlabelled datasets. Semi-supervised learning is commonly utilised for the same contexts as supervised learning models; however semi-supervised models also harness unlabelled data when training, alongside the existing labelled data. It is useful for machine learning tasks where a sufficient quantity of labelled data is prohibitively difficult or expensive to obtain, but a large quantity of unlabelled data isn't. Both supervised and unsupervised learning would underperform in such a situation. Semi-supervised learning is less efficient than its already mentioned counterparts when enough labelled data can be gathered to use supervised learning—in which case results will be better due to the correction taking place—or when there is a severe lack or inability to gather labelled data, in which case unsupervised learning would be used. \cite{DaveBergmann}
 
-\subsubsection{Reinforcement Learning}
+\subsection*{Reinforcement Learning}
 Finally, reinforcement learning (RL) is where an 'agent' will, through trial and error, learn to maximise its 'reward' by making certain decisions. In contrast to supervised and unsupervised learning, RL requires a dataset that consists of state-action-reward sequences. The data points are arranged into an environment for the machine to interact with—where states have transitions to other states—and there is a set goal for the machine to aim for. Initially, the machine will choose random actions from the predefined set available, and it will receive feedback on how each action contributed towards making it closer to the goal. Over time, the machine will assign weights to the actions, proportional to the size of the reward that it received for completing that action. This will lead to the machine choosing, at each time step, the actions that it has been told are the best ones. RL is a good choice for tasks that involve sequential decision making to maximise a long-term cumulative reward. For example, teaching a machine to play games, or to learn dexterity. RL is less suited when tasks don't have clearly defined rewards, and shouldn't be used for tasks with potential danger involved \cite{Hoda2020}.  RL has been used for many different tasks, such as teaching a machine to play Go\footnote{An overview of Go: \url{https://en.wikipedia.org/wiki/Go_(game)}} from scratch, by playing against itself for 40 days. This model was called AlphaGo Zero, and it was able to outperform the previous Go AI that famously beat the world number one Ke Jie, and Lee Sedol \cite{silver2017mastering, lee2016human}.
 
 \begin{figure}[H]
@@ -138,10 +164,7 @@ Finally, reinforcement learning (RL) is where an 'agent' will, through trial and
 Therefore, I will research deeper into supervised learning and the algorithms that can be encompassed by it.
 
 \section{Machine Learning Algorithms}
-This section will discuss the findings I have made regarding the available \gls{classification} ML algorithms, and their pros and cons.
-
-\subsection{Different Classification Models}
-\subsubsection{Linear vs Non-Linear Prediction Boundaries}
+\subsection*{Linear vs Non-Linear Prediction Boundaries}
 The following methods can be split into either linear, or non-linear, prediction boundaries. A linear boundary is a straight line—or flat hyperplane in higher dimensions—used to separate classes. A non-linear decision boundary is a curved line—or complex surface—used to handle more intricate data that cannot be separated as simply. See \ref{fig:linear-nonlinear}.
 \begin{figure}[H]
     \centering
@@ -149,7 +172,7 @@ The following methods can be split into either linear, or non-linear, prediction
     \caption{Example linear and non-linear decision boundaries on a two-dimensional graph. \cite{Duque2017}}
     \label{fig:linear-nonlinear}
 \end{figure}
-\subsubsection{Linear Regression}
+\subsection*{Linear Regression}
 Linear regression is a very simple linear classifier that makes use of a straight line to separate classes. It estimates the relationship between a dependent variable, and one or more independent variables.
 
 \begin{figure}[H]
@@ -159,14 +182,14 @@ Linear regression is a very simple linear classifier that makes use of a straigh
     \label{fig:linear-vs-logistic}
 \end{figure}
 
-\subsubsection{Logistic Regression}
+\subsection*{Logistic Regression}
 Logistic regression is a linear classifier model that builds upon linear regression, mainly for use in binary classification problems, although there are multi-class implementations too. Logistic regression transforms the y values generated using linear regression into values bound between zero and one using the Sigmoid Function below.
 \begin{equation*}
     \scalebox{2}[2]{\ensuremath{P = \frac{1}{1+e^{-x}}}}
 \end{equation*}
 Where \textit{P} is the probability of an event happening. Logistic regression is a simple model to understand, implement, and train, making it good for providing a baseline. However, due to the nature of its assumption of linearity between the dependent variable and the independent variables, this renders it unfit for non-linear relationships, which most reals world relationships are.\cite{osisanwo2017supervised}
 
-\subsubsection{K-Nearest Neighbours}
+\subsection*{K-Nearest Neighbours}
 K-nearest neighbours is a simple to understand model that can be used for classification or \gls{regression} tasks. It calculates the distance of the training points from the new test point, taking the K nearest points to produce a prediction. For classification, the prediction will be the most frequent class among the K neighbours, and for regression it would be average of the values. The size of K is specified by the human, and needs to be adjusted until the value that works best for the specific usage is found. The means of measuring the best value can come from its accuracy, as well as the models run time and performance.
 
 Since KNN calculates the distance from the test point to all the training points for every test point, it can be very computationally expensive as the number of training points grow, leading to slow predictions. Also, unlike other approaches that build models ahead of time, KNN doesn't 'learn' a model, so for every prediction, it requires going through the entire dataset, which makes it memory-intensive. Furthermore, KNN suffers from a phenomenon called the 'curse of dimensionality'. When the amount of dimensions (features per data point) increases, all training points become very far away from the test point, and the difference between the K neighbours is minimal in comparison to the overall distance from the test point. This makes the distance to neighbours less important, which for KNN, is its whole basis. \cite{osisanwo2017supervised}
@@ -187,12 +210,12 @@ SVMs work by finding the hyperplane that best separates the data points of diffe
 
 SVMs can handle both linear and non-linear data through the use of kernel functions, such as polynomial, radial basis function (RBF), or sigmoid kernels, which map the input data into higher dimensional spaces where it becomes linearly separable. SVMs are effective for high-dimensional datasets and can provide strong generalisation performance. However, they can be computationally expensive for large datasets, and selecting an appropriate kernel and tuning hyper-parameters such as C (regularisation) and gamma is necessary for good performance.\cite{osisanwo2017supervised}
 
-\subsubsection{Random Forest}
+\subsection*{Random Forest}
 Random Forest is an \gls{ensemble} learning method based on decision trees, used for classification or regression. They work by constructing a large number of decision trees during training and outputting the majority vote for classification tasks or the average prediction for regression tasks.\footnote{For a visual explanation of random forest, watch \href{https://www.youtube.com/watch?v=v6VJ2RO66Ag}{this.}}
 
 The key advantage of Random Forests is their ability to reduce \gls{overfitting} compared to a single decision tree, as each tree is trained on a random subset of the data and considers a random subset of features when splitting nodes. This introduces diversity among the trees, which improves overall performance. Random Forests are robust, can handle large datasets with many features, and provide feature importance metrics. However, they can become memory-intensive and slower to predict as the number of trees grows.\cite{osisanwo2017supervised}
 
-\subsubsection{Gradient Boosted Trees}
+\subsection*{Gradient Boosted Trees}
 Gradient Boosted Trees (GBT) are another ensemble method that sequentially creates a decision tree, where each new tree is trained to correct the errors of the previous trees. This is done using gradient descent to minimise a chosen loss function, making the model highly accurate and capable of capturing complex patterns.
 
 GBTs are powerful and often outperform simpler models like Logistic Regression or Random Forests on structured datasets. They are sensitive to hyper-parameter tuning, such as learning rate, number of trees, and tree depth, and can be prone to overfitting if not properly configured. They more computationally intensive than Random Forest, but they have the potential to be a lot more accurate too.\cite{osisanwo2017supervised}
