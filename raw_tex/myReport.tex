@@ -1,0 +1,117 @@
+\documentclass[12pt,oneside]{book}
+\usepackage{times}
+\usepackage[margin=1.2in]{geometry}
+\usepackage{setspace}
+\usepackage[toc,page]{appendix}
+% \usepackage[none]{hyphenat} % turn hyphenation off by default
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage[colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=black]
+    {hyperref}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{float}
+\usepackage{lscape}
+\usepackage{fullpage}
+\usepackage{cite}
+\usepackage{wrapfig}
+\usepackage[table]{xcolor}
+\usepackage{rotating}
+\usepackage[nottoc]{tocbibind}
+\usepackage{epstopdf}
+\usepackage{tabularx}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}
+\usepackage{caption}
+\usepackage[acronyms, automake]{glossaries-extra}
+\usepackage{longtable}
+
+\makeglossaries
+\input{./chapters/glossary.tex}
+
+\begin{document}
+
+\frontmatter
+
+\begin{titlepage}
+
+% You need to edit the details here
+
+\begin{center}
+\includegraphics[width=5cm]{./images/UOSLogo_Portrait_Violet_RGB.png}\\[2cm]
+\linespread{1.2}\huge {\bfseries VCT Match Predictor: Utilising Alexa to Provide Intuitive Valorant Esports Predictions}\\[1cm]
+\linespread{1}
+{\Large Edward Cox}\\[0.5cm]
+{\large \emph{Supervisor:} Roger K Moore}\\[1cm]
+\large \emph{A report submitted in fulfilment of the requirements}\\ \emph{for the degree of} BSc in Computer Science\\[0.3cm]
+\textit{in the}\\[0.3cm]
+School of Computer Science\\[2cm]
+\today
+\end{center}
+
+\end{titlepage}
+
+% -------------------------------------------------------------------
+% Declaration
+% -------------------------------------------------------------------
+
+\newpage
+\chapter*{\Large Declaration}
+
+\setstretch{1.1} % set the line spacing differently if you wish, but this looks good to me. 
+
+All sentences or passages quoted in this report from other people's work have been specifically acknowledged by clear cross-referencing to author, work, and page(s). Any illustrations that are not the work of the author of this report have been used with the explicit permission of the originator and are specifically acknowledged. I understand that failure to do this amounts to plagiarism and will be considered grounds for failure in this project and the degree examination as a whole.
+
+\vspace{1.0cm}
+
+\noindent Name: Edward Cox\\[1mm]
+\rule[1em]{25em}{0.5pt}
+
+\noindent Signature: Edward Cox\\[1mm]
+\rule[1em]{25em}{0.5pt}
+
+\noindent Date: 29/10/2025\\[1mm]
+\rule[1em]{25em}{0.5pt}
+
+% -------------------------------------------------------------------
+% Abstract
+% -------------------------------------------------------------------
+
+\input{./chapters/abstract}
+
+% -------------------------------------------------------------------
+% TOC etc
+% -------------------------------------------------------------------
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\setstretch{1.1} 
+
+\printglossary[type=\acronymtype]
+\glsaddall
+\printglossary
+
+\mainmatter
+
+\input{./chapters/chapter1}
+\input{./chapters/chapter2}
+\input{./chapters/chapter3.tex}
+\input{./chapters/chapter4.tex}
+\input{./chapters/chapter5.tex}
+
+\bibliographystyle{acm}
+\bibliography{mybibliography}
+
+% \begin{appendices}
+% \input{chapters/appendixA.tex}
+% \input{chapters/appendixB.tex}
+% \end{appendices}
+
+\end{document}

@@ -1,0 +1,135 @@
+\chapter{Analysis and Requirements}
+In this chapter, I will outline a rich list of requirements that I can use to track my progress and aim to fulfil. I will classify them based on importance, and the relative time that I estimate they will take to implement. The requirements will be relevant to the technologies that I have chosen in the previous chapter. I will further detail important steps in fulfilling some of these requirements.
+
+\section{Analysis}
+At its core, the Alexa skill should be able to receive an intent containing two teams and predict which team is more likely to win. Using the list of objectives that I have outlined in Chapter \ref{chap:objectives}, I will expand further on the steps required.
+
+The first objective is to source an in-depth dataset, of which I have already accomplished. The dataset that I have found contains a wealth of features that can be analysed, as well as features that can simply be used to provide useful information to the user. This dataset has already been structured and relevant data separated into useful tables. However, there are some fields that would need to be addressed, such as there being two teams with the same abbreviation "TP", and there being a team named "TBD", which is not a real team. Either the players were not on a team or their team name was missing at the time the match was played. I will have to make sure that there are no errors in the data such as these, although there are tools within pandas to help me in this.
+
+The classification algorithms I am going to be using are random forest and gradient boosted trees. Random forest should be quicker to implement, giving me some baseline accuracies that I can use to track the performance of future changes I make. Gradient boosted trees work better on larger datasets than random forest, and particularly excel with structured, tabular data, which mine is.\cite{bentejac2021comparative} I'll be using GBTs in the case of random forest not being scalable enough or accurate enough, in which case I will spend time tuning the hyper-parameters to achieve the best balance between accuracy and performance.
+
+To ensure that the skill can detect whether or not two teams have an upcoming match against each other, I will have to integrate an API into my back-end, which can fetch new additions to the match schedule. PandaScore API is the safest and easiest to use, offering an API key for me to simply request the most recent schedule. There are paid and free versions, and I will explore whether the free version is enough for my needs. If it isn't, there is also a community made API called Valorant Esports API that I can use. However, this could be shut down at any time, and I could be rate limited if there are too many requests being sent to it. I can also implement both, and use Valorant Esports API as a backup in-case PandaScore misses any entries, or is temporarily down.
+
+
+
+\section{Project Requirements}
+In this section, a list of requirements is detailed, including the MoSCoW priority, and the expected difficulty to implement on a scale of one to five. I have prioritised these based on their importance to the core functionality of the skill, as well as their importance to the user experience. Any requirements that have been labelled as 'should' or 'could' would be nice to have, though the skill will function without them.
+
+\subsubsection{Functional Requirements}
+{
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{|p{0.15\linewidth}|p{0.7\linewidth}|p{0.15\linewidth}|}
+\hline
+\textbf{Priority} & \textbf{Requirement} & \textbf{Difficulty (1-5)} \\
+\hline
+\endfirsthead
+
+\multicolumn{3}{c}%
+{{\bfseries Functional Requirements -- continued from previous page}} \\
+\hline
+\textbf{Priority} & \textbf{Requirement} & \textbf{Difficulty (1-5)} \\
+\hline
+\endhead
+
+\hline
+\endfoot
+
+\hline
+\endlastfoot
+
+% MUST requirements
+\cellcolor{green!50}\textbf{Must} & Users should be able to request a prediction regarding an upcoming match between two teams. & 2 \\ \hline
+\cellcolor{green!50}\textbf{Must} & Users should receive a meaningful error message if the requested match or teams are not recognised. & 2 \\ \hline
+\cellcolor{green!50}\textbf{Must} & Users should be able to stop or exit the skill at any time with intuitive utterances such as "Alexa, stop". & 1 \\ \hline
+\cellcolor{green!50} \textbf{Must} & The skill should respond with the team it predicts it going to win. & 2 \\ \hline
+\cellcolor{green!50} \textbf{Must} & The skill should be able to provide a confidence percentage of it's prediction. E.g. "NRG has a 65\% chance of winning". & 2 \\ \hline
+\cellcolor{green!50}\textbf{Must} & There should be a 'help' intent which gives the user a concise summary of the commands available. & 2 \\ \hline
+\cellcolor{green!50}\textbf{Must} & Users should be able to name the teams in any order and still receive a correct response. & 2 \\ \hline
+
+% SHOULD requirements (important, nice-to-have)
+\cellcolor{yellow!50}\textbf{Should} & The skill should confirm the teams before giving the prediction if the input is ambiguous. & 3 \\ \hline
+\cellcolor{yellow!50}\textbf{Should} & Users should be able to follow up on a prediction to ask the reasoning behind it. & 4 \\ \hline
+\cellcolor{yellow!50}\textbf{Should} & Users should be able to query the results of previous matches between two teams. & 3 \\ \hline
+\cellcolor{yellow!50}\textbf{Should} & Users should be able to ask for predictions for multiple upcoming matches in a single session. & 2 \\ \hline
+
+% COULD requirements
+\cellcolor{orange!50}\textbf{Could} & Users should be able to ask for extra statistics such as win/loss ratios or head-to-head performance. & 3 \\ \hline
+
+\end{longtable}
+}
+
+\subsubsection{Non-Functional Requirements}
+{
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{|p{0.15\linewidth}|p{0.7\linewidth}|p{0.15\linewidth}|}
+\hline
+\textbf{Priority} & \textbf{Requirement} & \textbf{Difficulty (1-5)} \\
+\hline
+\endfirsthead
+
+\multicolumn{3}{c}%
+{{\bfseries Non-Functional Requirements -- continued from previous page}} \\
+\hline
+\textbf{Priority} & \textbf{Requirement} & \textbf{Difficulty (1-5)} \\
+\hline
+\endhead
+
+\hline
+\endfoot
+
+\hline
+\endlastfoot
+
+% MUST requirements
+\cellcolor{green!50}\textbf{Must} & The list of utterances should include enough natural phrases so that users will trigger the correct intent at least 80\% of the time. & 3 \\ \hline
+\cellcolor{green!50}\textbf{Must} & The prediction should be returned to the user within six seconds. & 4 \\ \hline
+\cellcolor{green!50}\textbf{Must} & The model should have an accuracy of 60\% or higher. & 5 \\ \hline
+
+% SHOULD requirements
+\cellcolor{yellow!50}\textbf{Should} & The skill should respond to users in a conversational manner, maintaining context where necessary. & 4 \\ \hline
+\cellcolor{yellow!50}\textbf{Should} & The skill should maintain session state to allow for follow-up questions about previous predictions. & 4 \\ \hline
+\cellcolor{yellow!50}\textbf{Should} & The skill should be robust against minor variations in team names. & 3 \\ \hline
+
+\end{longtable}
+}
+Of the 'should' and 'could' requirements, I will strive to implement them as they would improve the user experience. Scenarios where I will have time to implement them include:
+\begin{itemize}
+    \item Requirements that were of high difficulty were easier to implement than expected.
+    \item Requirements with high priority were not necessary for unforeseen reasons.
+    \item Additional libraries were found that efficiently completed or partially completed the associated requirement.
+    \item User feedback highlighted one of these features as more valuable than I had expected.
+\end{itemize}
+
+\section{Evaluation}
+The evaluation of this project will consider functionality, performance, user experience, and the accuracy of match predictions. 
+
+Functional testing will confirm whether Alexa correctly interprets team names and returns predictions. This can be tested directly on my Amazon developer console by entering my commands on my skill. I can attempt to get Alexa to make a prediction even with mispronouncing some team names, such as pronouncing 'NRG' (en-ar-jee) as 'energy', and record the results. 
+
+From this, I can add many variations of team names to my skill, having many names map to one team. I can evaluate whether Alexa responds simply by manually testing the skill. If Alexa doesn't respond, I can use the debugging tools to try and find out why.
+
+Performance testing will focus on how efficiently the Alexa skill operates once it receives a valid intent. When a prediction is requested, the skill must communicate with the back-end service or model that determines the likely winner. The time taken to process this request and deliver a response back to Alexa will be measured. Ideally, responses should feel immediate to the user, so any noticeable delay would indicate the need for optimisation. 
+
+To evaluate this, I can monitor the response time of the skill within the Amazon developer console logs, noting any cases where the operation takes longer than expected. If delays occur, I can investigate whether they are due to inefficient code, slow API responses when fetching match information, or limitations in the testing environment. 
+
+Reliability can be assessed by repeatedly issuing the same intent to ensure that the skill behaves consistently. If the skill occasionally fails to respond or returns an error, these cases will be recorded and analysed using the built-in debugging tools. This will help highlight whether the system struggles under certain conditions, such as unexpected input or repeated requests within a short time-frame.
+
+User experience (UX) evaluation will assess how intuitive, enjoyable, and accessible the Alexa skill is. I will conduct informal user testing by asking a small group of participants to try the skill without additional guidance. They may be familiar with Valorant to varying degrees, which will help determine whether the skill is understandable to both fans and more casual users. 
+
+I will observe whether they know what to say, how easily they can phrase team names, and whether they feel the responses are helpful. After testing, I will ask the participants their opinions on the clarity of Alexa's responses, how easy it was to ask about predictions, and the usefulness of any extra information provided.
+
+I can record these by conducting a survey containing both radio button and free text answers. Based on the responses I receive, I can change certain parts to improve the UX. However, due to the short project timeline, I will not be able to measure long-term user engagement.
+
+Finally, the predictive model will be validated using historical and brand new VCT match data to measure accuracy. I can set reserve 15\% of my dataset to be used on evaluating my accuracy, as well as any new matches that are being released whilst I develop the project. If the accuracy is low, this could be an indicator that I have chosen the wrong classification model, or that I need to change the hyper-parameters.
+
+\section{Ethical and Legal Issues}
+\subsection{Ethical Issues}
+As with all machine learning models, I will need to outline to users that predictions made by the Alexa skill are not 100\% accurate, and need to be regarded this way. It may make mistakes, and should not be used to gamble on matches. This will need to be clearly explained on the skill page where a user would download this skill. The model may also be biased towards predicting wins for specific teams because there is more data related to them. Ensuring the users understand that predictions are based purely from historical data and can make mistakes, and are not sources of truth is imperative.
+
+Also, Valorant is an inherently violent video game. Players' objectives are to plant a bomb, and to accomplish this they may need to shoot other players with various firearms. Since Alexa devices are often used by younger children, even though Valorant is rated PEGI 16 in the UK, I should avoid unnecessarily violent language such as "kill". The word choice for the response should remain neutral, and focus on the match outcome.
+
+Since I will be conducting a survey post development, I will need to obtain ethics approval from the university. The survey will not cover sensitive topics or include vulnerable participants, and no personal data will be gathered.
+
+\subsection{Legal Issues}
+Any data used to train the model needs to be sourced lawfully. This includes ensuring that all copyrights are respected, and terms of service are followed, such as APIs. Intellectual property rights must also be respected. I must handle any works related to Valorant or Riot Games with care, and ensure I stay within the permissions granted. 
+
+Although I currently do not plan to include non-publicised personal data, I need to be aware that I do not accidentally include any, as this could be a breach of the GDPR should I make private information available.

@@ -1,0 +1,41 @@
+\chapter{Introduction}
+Esports is a field of video gaming in which a multiplayer online game is played by many different teams of professional players, the winning team taking home a prize. The events are broadcast for spectators, who can watch and bet. It is akin to the traditional sports industry, but instead of the event being football or cricket, it is video games.
+
+Valorant is one such game that has an Esports community around it. Valorant is a five versus five tactical-shooter game, where each player controls an ‘Agent’ with special abilities. The two teams will take turns playing on the attacking side and the defending side, where the attacking objective is to plant a bomb called the ‘spike’ and prevent it from being defused by the defenders. Players can shoot each other, and the eliminated player will be out until the next round, which will make quick reaction speeds and good hand-eye coordination crucial. For a more detailed video of Valorant, please look \href{https://www.youtube.com/watch?v=9omyVqrXhOg}{here}.
+
+VCT is an acronym for "Valorant Champions Tour". VCT is an official tournament that is held yearly, hosted by the company that developed Valorant, Riot Games. To make a comparison to football, it is similar to the world cup. In this tournament, professional Esports teams compete against each other in a double elimination bracket system. This means that to be eliminated from the competition, a team must lose twice. An example of a double-elimination bracket can be seen in \autoref{fig:Double Elimination Graphic Example}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{./images/double-elim.png}
+    \caption{An Example Flow of a Double Elimination Bracket}
+    \label{fig:Double Elimination Graphic Example}
+\end{figure}
+
+Valorant has a huge Esports scene surrounding it, drawing almost two million viewers per year, and giving away a total prize pool of \$45 billion in the five years it's been running, as can be seen at escharts\footnote{\url{https://escharts.com/games/valorant}}. To curious viewers who want to know the predicted outcome to a future game, for such a popular game, there is a severe lack of existing tools on the internet. When searching for a VCT predictor, almost all of the websites are for inputting and tracking your own predictions rather than calculated predictions. Many of these websites are also littered with advertisements, getting in the way of the website's purpose, and leading to a poor overall user experience.
+
+\section{Aims and Objectives}
+This project aims to create an intuitive, easy to use Amazon Alexa skill, providing the user with accurate upcoming VCT match predictions through the use of voice commands.
+\\
+To  accomplish these aims, I will need to:
+\label{chap:objectives}
+\begin{itemize}
+    \item Source or create an in-depth dataset pertaining to past VCT match results
+    \item Ensure the data is structured and normalised
+    \item Decide upon and implement a classification algorithm that outputs the probability of an outcome
+    \item Tune the algorithm's \glspl{hyper-parameter} using validation data as reference
+    \item Test the algorithm on unseen data to measure performance
+    \item Integrate a system that collects data on upcoming matches to ensure that newly released match-ups are considered.
+    \item Implement data structuring for use in responses to utterances such as "Why do you think that?"
+    \item Define Alexa \glspl{intent} to map to functions in the code
+    \item Define Alexa \glspl{utterance} to map to intents
+    \item Create a survey to allow real users to give feedback
+    \item Tweak the user experience based on the feedback
+\end{itemize}
+The greatest constraint that might affect how this project is carried out is the time available to me. A combination of scope-creep (adding more features in than feasibly possible) and other modules taking up my time could contribute to less being implemented than I wanted. However, by planning my time realistically, making use of a Gantt chart, and giving each of my requirements an importance property, I should be able to mitigate any consequences of these constraints.
+
+\section{Overview of the Report}
+
+The next chapter—the Technology Survey—will aim to provide an in-depth understanding about the types of machine learning and the corresponding algorithms, an overview of speech powered technologies, and the comparisons between the outlined options available to me. 
+
+The Analysis chapter will use what has been covered in the technology review to help provide an idea of how these methods and technologies could be used within my project, as well as to formalise and finalise a set of requirements that I can test my system against throughout the design and implementation process. With regard to evaluation, due to the nature of my project being a machine learning predictor model, the best way to evaluate how successful it is at any given stage would be to look at the following: the \gls{accuracy} of predictions made, as a percentage out of one-hundred; how easy the Alexa skill is to use from a user's perspective and how flexible it is to command variations; how long the Alexa skill takes to respond; and the readability, maintainability and efficiency of my source code. All of these will be explained in further detail within the respective chapter.
