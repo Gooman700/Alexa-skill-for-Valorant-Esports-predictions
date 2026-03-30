@@ -29,13 +29,13 @@
 \usepackage{mathptmx}
 \usepackage{caption}
 \usepackage{silence}
-\usepackage[acronyms, automake]{glossaries-extra}
+\usepackage[acronyms,nonumberlist]{glossaries-extra}
 \usepackage{longtable}
 
 % Suppress known harmless longtable split warning.
 \WarningFilter{latex}{Infinite glue shrinkage found in box being split}
 
-\makeglossaries
+\makenoidxglossaries
 \input{./chapters/glossary.tex}
 
 \begin{document}
@@ -98,9 +98,9 @@ All sentences or passages quoted in this report from other people's work have be
 
 \setstretch{1.1} 
 
-\printglossary[type=\acronymtype]
 \glsaddall
-\printglossary
+\printnoidxglossary[type=\acronymtype]
+\printnoidxglossary
 
 \mainmatter
 

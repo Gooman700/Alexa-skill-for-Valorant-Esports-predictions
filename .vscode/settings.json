@@ -1,5 +1,6 @@
 {
   "latex-workshop.message.latexlog.exclude": [
-    "Infinite glue shrinkage found in box being split"
+    "Infinite glue shrinkage found in box being split",
+    "Package glossaries: Preparing to sort glossary"
   ]
 }
