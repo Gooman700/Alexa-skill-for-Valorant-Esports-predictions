@@ -1,72 +1,71 @@
-\chapter{Technology Survey}
+\chapter{Literature and Technology Survey}
 \label{chap:technology survey}
 
-\section{Amazon Alexa and Google Home}
-When it comes to speech-powered smart speakers, there are two superpowers that come to mind: Amazon Echo, and Google Home. All of Amazon's products use their virtual assistant 'Alexa'. For both, users can 'invoke' the smart-speaker with a 'wake command', usually a short word or phrase such as "Alexa" or "Hey Google". Developers can create their own skills or actions for these smart-speakers, which users can then download, invoke, and use.
+\section{Amazon Alexa and Google Assistant}
+In the domain of voice-activated smart speakers, the market is primarily led by two ecosystems: the Amazon Echo range and the Google Home series. Both systems utilise virtual assistants---Alexa and Google Assistant, respectively---which are activated via a specific wake command, such as ``Alexa'' or ``Hey Google''. These platforms allow third-party developers to create bespoke applications, referred to as `skills' in the Amazon ecosystem and `actions' within Google's, which can be invoked by users to extend the device's functionality.
+
 \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\linewidth]{./images/Voice Command.png}
-    \caption{Visual of the Steps Involved in an Alexa Skill Cycle}
-    \label{fig:alexa-diagram}
+\centering
+\includegraphics[width=0.9\linewidth]{./images/Voice Command.png}
+\caption{Visualisation of the Request-Response Cycle within an Alexa Skill}
+\label{fig:alexa-diagram}
 \end{figure}
-\noindent Following a survey carried out by Statista’s Consumer Insights, it is apparent that Amazon has a much larger reach than Google when it comes to selling their smart speakers. This makes Amazon a more strategic market to target when it comes to creating new skills, as said skill would have a much larger audience on Amazon compared to Google.
+
+Data provided by Statista Consumer Insights indicates that Amazon maintains a significantly larger market share compared to Google in the smart speaker sector (\autoref{fig:SmartSpeakerChart}). Consequently, the Amazon Alexa platform represents a more strategic target for development, offering a broader potential user base for the deployment of new predictive tools.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{./images/SmartSpeakerChart.png}
-    \caption{Survey findings of which type of Smart Speaker people own.\\\footnotesize\url{https://www.statista.com/chart/23943/share-of-us-adults-who-own-smart-speakers/}}\
+    \caption{Market share of smart speaker ownership amongst adults.\cite{statista_smartspeaker}}
     \label{fig:SmartSpeakerChart}
 \end{figure}
 
-To develop an Amazon Alexa skill, first an Amazon developer account must be created, which will grant access to the Amazon developer console. Here, you can create new skills and edit existing ones, all from within their online application. There are two default programming languages available—Python and JavaScript. It is possible to choose any other language, though they lack the same level of support and number of built-in features in comparison to the default languages. From there, you must either choose to host your skill on AWS Lambda, or to provision your own endpoint to run your code locally. Finally, you are provided with an environment where you can set up invocations, change parameters, and code your skill.
+\section{Platform Selection and Technical Constraints}
+The development of an Alexa skill is facilitated through the Amazon Developer Console, a cloud-based environment used for the configuration and management of voice interactions. While the platform supports various programming languages, Python and JavaScript are provided as the primary languages with native \gls{sdk} (Software Development Kit) support. Hosting typically involves AWS Lambda, a serverless computing platform, though developers may also provision custom endpoints for local execution and debugging.
 
-After researching into the process required to create a new Google Home action, it has become apparent that `conversational actions' have been depricated in favour of `app actions', as can be seen in the google documentation\footnote{\url{https://developers.google.com/assistant/ca-sunset}}. This means that any new actions being made for Google Home can only communicate with their corresponding apps, of which I am not planning on making. With Alexa having a larger audience combined with Google `sunsetting' conversational actions, it is clear that I shall not be pursuing Google Home as a launchpad for my project, but rather I shall be going with Amazon.
+A critical technical constraint was identified during the evaluation of the Google Home ecosystem. Google has recently deprecated `conversational actions' in favour of `app actions', as documented in the Assistant Developer documentation\cite{google_sunset}. This shift implies that new Google Assistant developments must be tethered to a corresponding Android application. Given that this project is intended to function as a standalone voice service without a prerequisite mobile application, the sunsetting of conversational actions effectively precludes Google Home as a viable launchpad. Therefore, the decision was made to proceed exclusively with the Amazon Alexa platform.
 
-\section{Potential Development Options}
-In choosing to move forward with a skill developed for Amazon, it is now pertinent to research further into the benefits and drawbacks of each option at hand, allowing me to make informed decisions about the choices I make, from deciding a primary programming language, to determining where the final skill is going to be hosted.
+\section{Language Selection and Development Environment}
+Selecting an appropriate primary programming language is a critical architectural decision, as the choice directly influences the availability of documentation, pre-built libraries, and the overall complexity of the implementation. A language with insufficient support for machine learning would necessitate the manual development of boilerplate code, increasing the risk of project delays. Conversely, a language with an excessively steep learning curve could impede the preliminary stages of development. Therefore, a balance between technical capability and development efficiency must be established.
 
-The first decision that needs to be made concerns the primary programming language of the project. The chosen language will greatly impact the difficulty of the project, through the documentation and pre-built packages accessible to me, as well as my prior understanding of it. If the language has not been widely used for machine learning purposes, then there is a risk that there will be a lack of support surrounding it, requiring me to spend more time implementing the basics that could otherwise be considered boilerplate. However, if the language is also too complicated, especially if I haven't used it before, there might be a steep learning curve which could considerably impact the preliminary stages of development. Finding the right balance is going to be key to putting myself in the best starting position to achieve my goals.
+Following a comparative evaluation of the supported environments for Alexa Skill development, Python was identified as the optimal language for this project. Python is widely regarded as the industry standard for machine learning and data science, offering an extensive ecosystem of libraries that abstract complex mathematical operations and reduce manual implementation. The language's syntax and conventions further contribute to code readability and long-term maintainability. The following libraries were identified as essential to the project's success:
 
-However, after minimal research, there is a clear answer to this question. Python seems to be the best programming language for training machine learning models. There are extensive libraries that reduce both boilerplate, and complex mathematical code. The amount of documentation and community support available is enormous. Furthermore, Python's syntax and code layout conventions lend themselves to ease of readability and maintainability. The Python libraries that will be the most useful to me are:
 \begin{itemize}
-    \item NumPy - Enables working with array objects that are up to 50 times faster than vanilla Python lists, which is very helpful in the field of machine learning as usually there is a huge amount of data being worked with. {\footnotesize \url{https://numpy.org/}}
-    \item pandas - Provides a fast and efficient DataFrame object for data manipulation with integrated indexing, with tools to read and write data between in-memory data structures and different formats such as CSV files. Allows aggregatting data with its group by engine, as well as high performance merging of data sets. {\footnotesize \url{https://pandas.pydata.org/}}
-    \item scikit-learn - Supplies a vast selection of machine learning tools, including different machine learning algorithms, as well as methods to calculate the accuracy and split the data into test and train sets. {\footnotesize \url{https://scikit-learn.org/}}
+\item \textbf{NumPy:} This library facilitates high-performance operations on multi-dimensional array objects. NumPy is reported to be significantly more efficient than standard Python lists, which is crucial when processing the large datasets typical of machine learning workflows. \cite{numpy_site}
+\item \textbf{pandas:} This provides a high-performance DataFrame object for structured data manipulation. It includes integrated tools for reading and writing data in various formats, such as CSV, and offers a powerful engine for aggregating and merging disparate datasets. \cite{pandas_site}
+\item \textbf{scikit-learn:} A comprehensive suite of machine learning tools, including various classification algorithms, utilities for data splitting (training and testing sets), and metrics for evaluating model performance. \cite{sklearn_site}
 \end{itemize}
 
 \section{The Dataset}
-To create a machine learning model with any degree of accuracy past randomly guessing the winner, related features must first be obtained. For every Valorant match, there are a lot of features attributed to it, ranging from one as trivial as who the winner was, to as granular as an individual player's elimination count on a specific round. This allows the model to firstly use a small amount of simple features to be initially set up, with more derived, complex features being implmented at a later date.
+To develop a machine learning model with predictive power beyond stochastic chance, a robust set of features must be identified and obtained. Within the context of a Valorant match, data granularity ranges from high-level outcomes, such as the overall winner, to round-specific metrics, such as individual elimination counts. This spectrum of data allows for an iterative development approach: a model may be initialised using a small subset of primary features, with more complex, derived features integrated during later stages of implementation.
 
-There are two methods of obtaining a suitable dataset for this project: creating it myself, or using a pre-made one. In order to create my own dataset, I would need to first develop a web-scraper that requests  the HTML content of the match results page for every VCT match since the inaugural kick-off in 2021. For each result, key elements within the page would be extracted with the use of XPath or CSS selectors, depending on the unique identifiers for the desired element. For example, to acquire the team names from a match results page on vlr.gg (unofficial match statistics website), I would have the query this page with the CSS selector of `\#wf-title-med'. Both elements containing each team's name have the class `wf-title-med', and they are the only two elements on the page with that class. Asking for the text-content of the returned objects would provide both team names as strings. This must be replicated for additional features, which becomes substantially time-consuming. Furthermore, I would need to verify that the data scraped contains no anomalies, and is also standardised.
+Two primary methods for acquiring a suitable dataset were evaluated: manual creation via web-scraping or the utilisation of a pre-existing dataset. The manual creation of a dataset would require the development of a bespoke web-scraper to request the HTML content of match results from historical VCT data since 2021. For instance, extracting team names from a repository such as VLR.gg \cite{vlr_gg} would involve querying the DOM using feature unique CSS selectors, such as \texttt{\#wf-title-med}. While this method offers maximum control over the data schema, the process of extraction, standardisation, and anomaly detection is substantially time-consuming.
 
-With an existing dataset, I would need to ensure that it contains enough features to create a model capable of capturing a wealth of underlying relationships between different features and the winning team. Simply possessing many features does not equate to an acceptable understanding of the data. Two different features could both communicate the same information, and in this case, there is just a redundant feature. Additionally, the data would still need to be checked for inconsistencies and anomalies. Any datasets found would need to be used in accordance with the creator's copyright license.
+Conversely, the use of an existing dataset requires a rigorous assessment of feature richness and data integrity. It is essential to ensure that the dataset captures the underlying relationships between match variables and the final outcome without introducing multicollinearity---a state where redundant features communicate identical information. Furthermore, any external data must be used in strict accordance with the original author's licensing and copyright terms.
 
-Due to the possibly extensive time period that creating my own dataset could span, finding a pre-made one was prioritised, and after searching, a comprehensive dataset was acquired. This can be viewed on the author's kaggle page\footnote{\scriptsize\url{https://www.kaggle.com/datasets/ryanluong1/valorant-champion-tour-2021-2023-data}}. \autoref{tab:data-dictionary} contains an exhaustive data dictionary of the features from the dataset and their meaning, whereas the following subsection will go into depth about particularly important features.
+Given the significant time investment required for manual scraping, the acquisition of a comprehensive, pre-existing dataset was prioritised. A suitable dataset was identified and sourced from a repository on Kaggle \cite{ryanluong_dataset}. \autoref{tab:key-dataset-features} provides a data dictionary of the critical features extracted for this project, while the following subsection details their predictive significance.
 
 \subsection*{Dataset Features}
-Features can be categorised into two main focuses: teams and players. Features relating to players hold information pertaining to an individual player, such as their Average Combat Score, which gives an indication as to how good the constituent players of the team are. Features relating to teams, such as `Team A Attacker Score', give high-level information about how the team fared against another team in this match, and can be used to create understanding of team dynamics within the model. In the table below, where a feature is written as `feature X', this means that there is both `feature A' and `feature B', for each team respectively.
+Features within the dataset are categorised into two primary domains: player-level and team-level metrics. Player-level features, such as `Average Combat Score (ACS)', provide an indication of the individual technical proficiency of the team's constituents. Team-level features, such as `Attacker Score', offer high-level insights into team dynamics and situational performance. In the following table, features denoted with `X' represent data collected for both competing teams (Team A and Team B) respectively.
 
 \begin{table}[H]
     \centering
     \small
     \begin{tabularx}{\linewidth}{|>{\raggedright\arraybackslash}p{3cm}|>{\raggedright\arraybackslash}p{5cm}|>{\raggedright\arraybackslash}X|}
         \hline
-        \textbf{Feature} & \textbf{Definition} & \textbf{Why It Is Useful} \\ \hline
-        Team X & The name of one of the teams competing in the match. & Can be used as an identifier when grouping data by team. \\ \hline
-        Map & The name of the map that the match was played on. & Can be used to derive map-specific performance. \\ \hline
-        Team X Score & How many rounds the team won in total (e.g., 13). & Can be used to calculate the winner and team-level performance measures such as win percentage over the last 10 games. \\ \hline
-        Team X Attacker Score & The number of rounds the team won while on the attacking side. & Can be used to calculate the team's attacking proficiency. \\ \hline
-        Team X Defender Score & The number of rounds the team won while on the defending side. & Can be used to calculate the team's defending proficiency and, with attacker score and map, assess map-side bias. \\ \hline
-        KAST & The percentage of rounds in a match where a player got a kill, assist, traded a kill, or survived. & Can be used to determine how well a player contributes within team play. \\ \hline
-        First Kills & How many times in a match the player got the first elimination of a round. & Good indicator of player aggression; paired with a teammate's high KAST can indicate good teamwork. \\ \hline
-        First Deaths & How many times in a match the player was first eliminated. & Lower values generally indicate better opening-round survivability. \\ \hline
-        Average Combat Score & A player score based on damage, kills, multi-kills, and non-damaging assists. & A useful aggregate feature for indicating individual performance. \\ \hline
-        Pistol Won & A flag represented by the feature `Type' in the `Eco\_Stats' table that signifies the team won the pistol round. & Winning pistol round strongly increases the chance of winning the following round, giving early match momentum. \\ \hline
+        \textbf{Feature} & \textbf{Definition} & \textbf{Predictive Utility} \\ \hline
+        Team X & The name of a competing team. & Acts as a primary key for grouping historical performance data. \\ \hline
+        Map & The game map in which the match took place. & Facilitates the derivation of map-specific win rates and performance biases. \\ \hline
+        Team X Score & Total rounds won by a team. & Used to determine the match winner and calculate rolling performance metrics (e.g., win percentage over $n$ matches). \\ \hline
+        Team X Attacker / Defender Score & Rounds won while on the attacking or defending side. & Used to assess side-specific proficiency and map-side advantage. \\ \hline
+        KAST & Percentage of rounds featuring a kill, assist, survival, or trade. & Measures a player's overall contribution to team-oriented play. \\ \hline
+        First Kills / Deaths & Frequency of a player being the first to eliminate or be eliminated in a round. & Indicates round-opening aggression and survivability; critical for early-round advantage. \\ \hline
+        Average Combat Score & Aggregate score based on damage, kills, assists, and multi-kills. & Serves as a weighted proxy for individual mechanical performance. \\ \hline
+        Pistol Won & A binary flag indicating the winner of the initial round of each half. & Acts as a lead indicator for match momentum and subsequent round economic advantage. \\ \hline
     \end{tabularx}
-    \caption{Key Dataset Features and Their Predictive Utility}
+    \caption{Key Dataset Features and their Predictive Significance}
     \label{tab:key-dataset-features}
 \end{table}
-
-The abundance of features that this dataset contains will be plenty when it comes to curating a final table to train a machine learning model on.
 
 \section{Exploring Machine Learning Approaches}
 "Machine learning (ML) is a field of study in artificial intelligence that is concerned with the development and study of statistical algorithms that can learn from data and generalise to unseen data and thus perform tasks without explicit instructions" \cite{Koza1996}.
