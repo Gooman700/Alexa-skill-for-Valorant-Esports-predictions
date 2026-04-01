@@ -28,10 +28,9 @@ The first decision that needs to be made concerns the primary programming langua
 
 However, after minimal research, there is a clear answer to this question. Python seems to be the best programming language for training machine learning models. There are extensive libraries that reduce both boilerplate, and complex mathematical code. The amount of documentation and community support available is enormous. Furthermore, Python's syntax and code layout conventions lend themselves to ease of readability and maintainability. The Python libraries that will be the most useful to me are:
 \begin{itemize}
-    \item NumPy
-    \item pandas
-    \item scikit-learn
-    \item SciPy
+    \item NumPy - Enables working with array objects that are up to 50 times faster than vanilla Python lists, which is very helpful in the field of machine learning as usually there is a huge amount of data being worked with. {\footnotesize \url{https://numpy.org/}}
+    \item pandas - Provides a fast and efficient DataFrame object for data manipulation with integrated indexing, with tools to read and write data between in-memory data structures and different formats such as CSV files. Allows aggregatting data with its group by engine, as well as high performance merging of data sets. {\footnotesize \url{https://pandas.pydata.org/}}
+    \item scikit-learn - Supplies a vast selection of machine learning tools, including different machine learning algorithms, as well as methods to calculate the accuracy and split the data into test and train sets. {\footnotesize \url{https://scikit-learn.org/}}
 \end{itemize}
 
 \section{The Dataset}
@@ -161,7 +160,7 @@ Finally, reinforcement learning (RL) is where an 'agent' will, through trial and
     \label{tab:MLProsAndCons}
 \end{table}
 
-\noindent By comparing and contrasting these machine learning paradigms, looking at the optimal use cases of each and also the drawbacks, I have come to the conclusion that supervised learning is the best approach to pursue further. This is due to the fact that the datasets available on the internet containing information about past Valorant professional matches is all going to be labelled, as the games have already taken place and have a clear winner. Also, I am wanting the model to make \textit{accurate predictions} about the results, which supervised learning was good at, and not \textit{find hidden patterns} in the data, which was better done by unsupervised learning. The data cannot be organised into a state-action-reward environment for reinforcement learning, and I have enough labelled data to not require semi-supervised learning.
+\noindent In addition, by comparing and contrasting these machine learning paradigms' optimal use cases and drawbacks, I have further reinforced the conclusion that supervised learning is the best approach to pursue further. This is due to the fact that the datasets available on the internet containing information about past Valorant professional matches are all going to be labelled, as the games have already taken place and have a clear winner. Also, I am wanting the model to make \textit{accurate predictions} about the results, which supervised learning was good at, and not \textit{find hidden patterns} in the data, which was better done by unsupervised learning. The data cannot be organised into a state-action-reward environment for reinforcement learning, and I have enough labelled data to not require semi-supervised learning.
 
 Therefore, I will research deeper into supervised learning and the algorithms that can be encompassed by it.
 
