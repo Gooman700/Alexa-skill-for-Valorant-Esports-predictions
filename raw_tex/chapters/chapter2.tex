@@ -39,11 +39,11 @@ Following a comparative evaluation of the supported environments for Alexa Skill
 \section{The Dataset}
 To develop a machine learning model with predictive power beyond stochastic chance, a robust set of features must be identified and obtained. Within the context of a Valorant match, data granularity ranges from high-level outcomes, such as the overall winner, to round-specific metrics, such as individual elimination counts. This spectrum of data allows for an iterative development approach: a model may be initialised using a small subset of primary features, with more complex, derived features integrated during later stages of implementation.
 
-Two primary methods for acquiring a suitable dataset were evaluated: manual creation via web-scraping or the utilisation of a pre-existing dataset. The manual creation of a dataset would require the development of a bespoke web-scraper to request the HTML content of match results from historical VCT data since 2021. For instance, extracting team names from a repository such as VLR.gg \cite{vlr_gg} would involve querying the DOM using feature unique CSS selectors, such as \texttt{\#wf-title-med}. While this method offers maximum control over the data schema, the process of extraction, standardisation, and anomaly detection is substantially time-consuming.
+Two primary methods for acquiring a suitable dataset were evaluated: manual creation via web-scraping or the utilisation of a pre-existing dataset. The manual creation of a dataset would require the development of a bespoke web-scraper to request the HTML content of match results from historical VCT data since 2021. Extracting features from a repository such as VLR.gg \cite{vlr_gg} would involve querying the DOM using feature unique CSS selectors, such as \texttt{\#wf-title-med} for the team names. While this method offers maximum control over the data schema, the process of extraction, standardisation, and anomaly detection is substantially time-consuming.
 
 Conversely, the use of an existing dataset requires a rigorous assessment of feature richness and data integrity. It is essential to ensure that the dataset captures the underlying relationships between match variables and the final outcome without introducing multicollinearity---a state where redundant features communicate identical information. Furthermore, any external data must be used in strict accordance with the original author's licensing and copyright terms.
 
-Given the significant time investment required for manual scraping, the acquisition of a comprehensive, pre-existing dataset was prioritised. A suitable dataset was identified and sourced from a repository on Kaggle \cite{ryanluong_dataset}. \autoref{tab:key-dataset-features} provides a data dictionary of the critical features extracted for this project, while the following subsection details their predictive significance.
+Given the significant time investment required for manual scraping, the acquisition of a comprehensive, pre-existing dataset was prioritised. A suitable dataset was identified and sourced from a repository on Kaggle \cite{ryanluong_dataset}. \autoref{tab:key-dataset-features} provides a data dictionary of the critical features extracted for this project.
 
 \subsection*{Dataset Features}
 Features within the dataset are categorised into two primary domains: player-level and team-level metrics. Player-level features, such as `Average Combat Score (ACS)', provide an indication of the individual technical proficiency of the team's constituents. Team-level features, such as `Attacker Score', offer high-level insights into team dynamics and situational performance. In the following table, features denoted with `X' represent data collected for both competing teams (Team A and Team B) respectively.
@@ -51,31 +51,55 @@ Features within the dataset are categorised into two primary domains: player-lev
 \begin{table}[H]
     \centering
     \small
-    \begin{tabularx}{\linewidth}{|>{\raggedright\arraybackslash}p{3cm}|>{\raggedright\arraybackslash}p{5cm}|>{\raggedright\arraybackslash}X|}
-        \hline
-        \textbf{Feature} & \textbf{Definition} & \textbf{Predictive Utility} \\ \hline
-        Team X & The name of a competing team. & Acts as a primary key for grouping historical performance data. \\ \hline
-        Map & The game map in which the match took place. & Facilitates the derivation of map-specific win rates and performance biases. \\ \hline
-        Team X Score & Total rounds won by a team. & Used to determine the match winner and calculate rolling performance metrics (e.g., win percentage over $n$ matches). \\ \hline
-        Team X Attacker / Defender Score & Rounds won while on the attacking or defending side. & Used to assess side-specific proficiency and map-side advantage. \\ \hline
-        KAST & Percentage of rounds featuring a kill, assist, survival, or trade. & Measures a player's overall contribution to team-oriented play. \\ \hline
-        First Kills / Deaths & Frequency of a player being the first to eliminate or be eliminated in a round. & Indicates round-opening aggression and survivability; critical for early-round advantage. \\ \hline
-        Average Combat Score & Aggregate score based on damage, kills, assists, and multi-kills. & Serves as a weighted proxy for individual mechanical performance. \\ \hline
-        Pistol Won & A binary flag indicating the winner of the initial round of each half. & Acts as a lead indicator for match momentum and subsequent round economic advantage. \\ \hline
+    \begin{tabularx}{\linewidth}{@{} >{\bfseries\raggedright\arraybackslash}p{3cm} >{\raggedright\arraybackslash}p{5cm} X @{}}
+        \toprule
+        \textbf{Feature} & \textbf{Technical Definition} & \textbf{Predictive Significance} \\ 
+        \midrule
+        
+        Team X & The categorical identifier for a competing organisation. & Acts as a primary key for aggregating historical performance and form. \\
+        \addlinespace
+        
+        \midrule
+        Map & The specific geospatial environment in which the match was contested. & Facilitates the derivation of map-specific win rates and tactical biases. \\
+        \addlinespace
+        
+        \midrule
+        Team X Score & The total number of rounds won by a team. & Used to determine the target variable (winner) and calculate rolling performance metrics (e.g., win percentage over $n$ matches). \\
+        \addlinespace
+        
+        \midrule
+        Team X Atk / Def Score & The rounds won specifically while on the attacking or defending side. & Used to assess side-specific proficiency and quantify map-side imbalances. \\
+        \addlinespace
+        
+        \midrule
+        KAST & Percentage of rounds featuring a Kill, Assist, Survival, or Trade. & Provides a robust metric for a player's overall contribution to team-oriented objectives. \\
+        \addlinespace
+        
+        \midrule
+        First Kills / Deaths & Frequency of a player being the initial elimination in a round. & Serves as a primary indicator of opening aggression and round-start survivability. \\
+        \addlinespace
+        
+        \midrule
+        Avg. Combat Score & A weighted aggregate score based on damage, eliminations, and assists. & Functions as a high-fidelity proxy for individual mechanical and tactical performance. \\
+        \addlinespace
+        
+        \midrule
+        Pistol Won & A binary indicator of the winner of the initial round of each half. & Acts as a lead indicator for economic momentum and subsequent round advantage. \\
+        \bottomrule
     \end{tabularx}
-    \caption{Key Dataset Features and their Predictive Significance}
+    \caption{Data Dictionary of Key Dataset Features and their Predictive Significance.}
     \label{tab:key-dataset-features}
 \end{table}
 
 \section{Exploring Machine Learning Approaches}
-"Machine learning (ML) is a field of study in artificial intelligence that is concerned with the development and study of statistical algorithms that can learn from data and generalise to unseen data and thus perform tasks without explicit instructions" \cite{Koza1996}.
+Machine learning (ML) is defined as a field of artificial intelligence concerned with the development of statistical algorithms capable of learning from data to generalise to unseen instances, thereby performing tasks without explicit instructions \cite{Koza1996}.
 
-Machine learning is used in a vast amount of people's lives every month, perhaps without them even knowing it. For example, Facebook—the world's 2nd most popular social network by number of users \cite{BacklinkoTeam2025}—"uses machine learning to generate the estimated action rate and the ad quality score used in the total value equation" \cite{Facebook2020}. What this means is that possible adverts that might be shown to the user are scored, by a machine learning algorithm, as to how successful they might be in influencing that users decision, as well as the quality of the advert. Facebook now has 3.07 billion monthly active users as of October 2025, and did have 3.65 billion in 2024 \cite{NaveenKumar2025}, which is a lot of people being exposed to ML via only one platform.
+The ubiquity of ML is evident in modern digital infrastructure. For instance, platforms such as Facebook utilise ML to generate estimated action rates and ad quality scores within a total value equation to optimise user engagement \cite{Facebook2020}. With a monthly active user base exceeding three billion as of late 2025 \cite{NaveenKumar2025}, such systems represent a significant industrial application of predictive modelling. More pertinently to this research, the sports betting industry has shifted towards predictive ML models to generate odds and quantify the probability of specific match outcomes \cite{RhysGregory2025}. This industrial application directly mirrors the objectives of this project, albeit applied to the esports domain.
 
-Recently, bookmakers have also shifted towards using predictive machine learning models to generate the odds of a specific outcome, which they can then use to sell bets to customers \cite{RhysGregory2025}. This is the most similar example of ML being used in industry to my project.
+To achieve the stated aims, a suitable machine learning paradigm must be selected. Algorithms are generally categorised into four primary frameworks: supervised, unsupervised, semi-supervised, and reinforcement learning \cite{Sarker2021}. The selection of an appropriate framework is dependent not only on the desired task but also on the nature of the available data.
 
-To successfully accomplish the aim that I have set for myself, some form of machine learning approach will need to be implemented. There is a vast amount of different training and prediction algorithms available to me, all of which are better suited to different tasks. ML algorithms fall under 4 categories, supervised, unsupervised, semi-supervised, and reinforcement learning \cite{Sarker2021}.
-
+In the context of Valorant match prediction, the choice of paradigm is dictated by the structure of the VCT dataset. As professional matches result in a definitive winner and loser, the historical data is inherently labelled. Consequently, supervised learning is identified as the most appropriate approach for this project. Unlike unsupervised learning, which is designed for exploratory pattern discovery in unlabelled data, supervised learning is optimised for classification tasks where the goal is to predict a specific target variable (the match winner) based on known historical inputs.
+ 
 \subsection*{Supervised Learning}
 Supervised learning is the process of teaching a machine by example. The algorithm is provided with a dataset where the human knows the correct outputs for the set of inputs. The machine makes predictions using the provided data, and is corrected when wrong, until the algorithm has been refined enough for there to be a high degree of \gls{accuracy}. This approach is well suited to predicting or classifying new, unseen data based off of the patterns recognised from the labelled training data. However, supervised learning is not as good at discovering new patterns, only at predicting based off of existing ones. Also, it requires a sufficiently large, accurately labelled dataset, which is time consuming and expensive to procure/produce. \cite{SupervisedLearning}
 
@@ -100,7 +124,7 @@ Unsupervised learning is where the machine studies large, unlabelled datasets to
 Semi-supervised learning is an approach that combines supervised and unsupervised learning by using both labelled and unlabelled datasets. Semi-supervised learning is commonly utilised for the same contexts as supervised learning models; however semi-supervised models also harness unlabelled data when training, alongside the existing labelled data. It is useful for machine learning tasks where a sufficient quantity of labelled data is prohibitively difficult or expensive to obtain, but a large quantity of unlabelled data isn't. Both supervised and unsupervised learning would underperform in such a situation. Semi-supervised learning is less efficient than its already mentioned counterparts when enough labelled data can be gathered to use supervised learning—in which case results will be better due to the correction taking place—or when there is a severe lack or inability to gather labelled data, in which case unsupervised learning would be used. \cite{DaveBergmann}
 
 \subsection*{Reinforcement Learning}
-Finally, reinforcement learning (RL) is where an 'agent' will, through trial and error, learn to maximise its 'reward' by making certain decisions. In contrast to supervised and unsupervised learning, RL requires a dataset that consists of state-action-reward sequences. The data points are arranged into an environment for the machine to interact with—where states have transitions to other states—and there is a set goal for the machine to aim for. Initially, the machine will choose random actions from the predefined set available, and it will receive feedback on how each action contributed towards making it closer to the goal. Over time, the machine will assign weights to the actions, proportional to the size of the reward that it received for completing that action. This will lead to the machine choosing, at each time step, the actions that it has been told are the best ones. RL is a good choice for tasks that involve sequential decision making to maximise a long-term cumulative reward. For example, teaching a machine to play games, or to learn dexterity. RL is less suited when tasks don't have clearly defined rewards, and shouldn't be used for tasks with potential danger involved \cite{Hoda2020}.  RL has been used for many different tasks, such as teaching a machine to play Go\footnote{An overview of Go: \url{https://en.wikipedia.org/wiki/Go_(game)}} from scratch, by playing against itself for 40 days. This model was called AlphaGo Zero, and it was able to outperform the previous Go AI that famously beat the world number one Ke Jie, and Lee Sedol \cite{silver2017mastering, lee2016human}.
+Finally, reinforcement learning (RL) is where an `agent' will, through trial and error, learn to maximise its `reward' by making certain decisions. In contrast to supervised and unsupervised learning, RL requires a dataset that consists of state-action-reward sequences. The data points are arranged into an environment for the machine to interact with—where states have transitions to other states—and there is a set goal for the machine to aim for. Initially, the machine will choose random actions from the predefined set available, and it will receive feedback on how each action contributed towards making it closer to the goal. Over time, the machine will assign weights to the actions, proportional to the size of the reward that it received for completing that action. This will lead to the machine choosing, at each time step, the actions that it has been told are the best ones. RL is a good choice for tasks that involve sequential decision making to maximise a long-term cumulative reward. For example, teaching a machine to play games, or to learn dexterity. RL is less suited when tasks don't have clearly defined rewards, and shouldn't be used for tasks with potential danger involved \cite{Hoda2020}.  RL has been used for many different tasks, such as teaching a machine to play Go\footnote{An overview of Go: \url{https://en.wikipedia.org/wiki/Go_(game)}} from scratch, by playing against itself for 40 days. This model was called AlphaGo Zero, and it was able to outperform the previous Go AI that famously beat the world number one Ke Jie, and Lee Sedol \cite{silver2017mastering, lee2016human}.
 
 \begin{figure}[H]
     \centering
@@ -109,63 +133,61 @@ Finally, reinforcement learning (RL) is where an 'agent' will, through trial and
     \label{fig:reinforcement-learning}
 \end{figure}
 
-\begin{table}[!ht]
-    \begin{tabular}{|l|>{\raggedright\arraybackslash}m{5cm}|>{\raggedright\arraybackslash}m{5cm}|}
-        \hline
-        \textbf{Approach} & \textbf{Pros} & \textbf{Cons} \\ 
-        \hline
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabularx}{\linewidth}{@{} l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{3.5cm} @{} }
+        \toprule
+        \textbf{Approach} & \textbf{Key Advantages} & \textbf{Primary Drawbacks} & \textbf{Typical Data Source} \\ 
+        \midrule
 
-        \textbf{Supervised} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Easier to evaluate (since inputs are labelled)
-            \item Well-established algorithms
-        \end{itemize}\vspace{4pt} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Requires large amounts of labelled data
-            \item May over-fit
-        \end{itemize}\vspace{4pt} \\ \hline
+        \textbf{Supervised} & 
+        Straightforward evaluation; well-established algorithms for classification. & 
+        Requires high-quality labelled data; susceptible to overfitting. & 
+        \textbf{Labelled:} Match history with definitive win/loss outcomes. \\
+        \addlinespace
 
-        \textbf{Unsupervised} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Works without labelled data
-            \item Can discover hidden patterns
-        \end{itemize}\vspace{4pt} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Hard to evaluate objectively
-            \item Patterns may not be meaningful
-        \end{itemize}\vspace{4pt} \\ \hline
+        \midrule
+        \textbf{Unsupervised} & 
+        Capable of discovering hidden structures; does not require manual labelling. & 
+        Results can be difficult to interpret; objectively measuring success is complex. & 
+        \textbf{Unlabelled:} Large raw datasets, e.g., raw player movement logs. \\
+        \addlinespace
 
-        \textbf{Semi-supervised} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Uses both labelled and unlabelled data
-            \item Efficient for large datasets
-        \end{itemize}\vspace{4pt} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Requires careful tuning
-            \item Depends on distribution of unlabelled data
-        \end{itemize}\vspace{4pt} \\ \hline
+        \midrule
+        \textbf{Semi-supervised} & 
+        Reduces the need for massive labelled datasets by utilising unlabelled data. & 
+        Highly dependent on the underlying distribution of unlabelled data. & 
+        \textbf{Mixed:} Small sets of verified outcomes with large raw archives. \\
+        \addlinespace
 
-        \textbf{Reinforcement} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Learns via interaction and feedback
-            \item Good for sequential decision-making
-        \end{itemize}\vspace{4pt} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Computationally expensive
-            \item Requires well-designed reward function
-        \end{itemize}\vspace{4pt} \\ \hline
-    \end{tabular}
-    \caption{Pros and cons of each machine learning approach.}
+        \midrule
+        \textbf{Reinforcement} & 
+        Ideal for sequential decision-making; learns optimal strategies via feedback. & 
+        Computationally intensive; requires a complex, predefined reward function. & 
+        \textbf{Environment:} Real-time simulation or game state-action sequences. \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Comparative analysis of machine learning paradigms and their data requirements.}
     \label{tab:MLProsAndCons}
 \end{table}
 
-\noindent In addition, by comparing and contrasting these machine learning paradigms' optimal use cases and drawbacks, I have further reinforced the conclusion that supervised learning is the best approach to pursue further. This is due to the fact that the datasets available on the internet containing information about past Valorant professional matches are all going to be labelled, as the games have already taken place and have a clear winner. Also, I am wanting the model to make \textit{accurate predictions} about the results, which supervised learning was good at, and not \textit{find hidden patterns} in the data, which was better done by unsupervised learning. The data cannot be organised into a state-action-reward environment for reinforcement learning, and I have enough labelled data to not require semi-supervised learning.
+\noindent A comparative analysis of these machine learning paradigms reinforces the conclusion that supervised learning is the optimal approach for this project. This selection is dictated by the structure of the available VCT datasets, which consist of historical professional matches with definitive, labelled outcomes (a confirmed winner and loser).
 
-Therefore, I will research deeper into supervised learning and the algorithms that can be encompassed by it.
+Furthermore, the primary objective is to generate \textit{accurate predictions} of match results rather than to perform exploratory \textit{pattern discovery}, for which unsupervised learning would be better suited. The tabular nature of the match statistics does not readily lend itself to a state-action-reward environment required for reinforcement learning, and the abundance of labelled data precludes the necessity for semi-supervised techniques. Consequently, the following research focuses exclusively on supervised classification algorithms.
 
 \section{Machine Learning Algorithms}
+
+\subsection{Related Work in Predictive Sports Analytics}
+The application of supervised learning to match outcome prediction is well-documented within traditional sports literature. A significant portion of existing research has focused on football; for instance, Igiri and Nwachukwu \cite{igiri2014improved} developed improved prediction systems by leveraging historical match results, while Owramipur et al. \cite{owramipur2013football} utilised Bayesian networks to predict outcomes in the Spanish League, highlighting the effectiveness of probabilistic modelling in competitive environments.
+
+Comparative studies have frequently been employed to identify the most robust algorithms for sporting data. Delen et al. \cite{delen2012comparative} conducted a comprehensive analysis of ML methods to predict NCAA bowl outcomes, concluding that ensemble-based approaches often outperform individual classifiers. This is further supported by Mustafa et al. \cite{mustafa2017predicting}, who compared various machine learning methods in the context of cricket, noting that the inclusion of diverse feature sets---including social sentiment and historical form---significantly enhances predictive accuracy.
+
+Furthermore, the concept of ``one-match-ahead" forecasting, as explored by Lam \cite{lam2018one}, demonstrates the utility of Bayesian regressions in handling the sequential nature of two-team sports. While these studies primarily address traditional athletics, the underlying mathematical principles are directly transferable to the esports domain. Like football or cricket, Valorant matches are defined by two-team interactions, historical form, and situational variables (such as map choice), justifying the application of these established classification frameworks to the VCT dataset.
+
+\subsection{Supervised Learning Algorithms}
 \subsection*{Linear vs Non-Linear Prediction Boundaries}
-The following methods can be split into either linear, or non-linear, prediction boundaries. A linear boundary is a straight line—or flat hyperplane in higher dimensions—used to separate classes. A non-linear decision boundary is a curved line—or complex surface—used to handle more intricate data that cannot be separated as simply. See \ref{fig:linear-nonlinear}.
+The following methods can be split into either linear, or non-linear, prediction boundaries. A linear boundary is a straight line---or flat hyperplane in higher dimensions---used to separate classes. A non-linear decision boundary is a curved line---or complex surface---used to handle more intricate data that cannot be separated as simply. See \ref{fig:linear-nonlinear}.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\linewidth]{./images/lin-non-lin.png}
@@ -183,44 +205,58 @@ Linear regression is a very simple linear classifier that makes use of a straigh
 \end{figure}
 
 \subsection*{Logistic Regression}
-Logistic regression is a linear classifier model that builds upon linear regression, mainly for use in binary classification problems, although there are multi-class implementations too. Logistic regression transforms the y values generated using linear regression into values bound between zero and one using the Sigmoid Function below.
+Logistic regression is a linear classifier model developed for binary classification problems, though multi-class implementations also exist. The model transforms the output of a linear equation into a probability bound between zero and one using the Sigmoid (Logistic) function:
 \begin{equation*}
-    \scalebox{2}[2]{\ensuremath{P = \frac{1}{1+e^{-x}}}}
+    P = \frac{1}{1+e^{-x}}
 \end{equation*}
-Where \textit{P} is the probability of an event happening. Logistic regression is a simple model to understand, implement, and train, making it good for providing a baseline. However, due to the nature of its assumption of linearity between the dependent variable and the independent variables, this renders it unfit for non-linear relationships, which most reals world relationships are.\cite{osisanwo2017supervised}
+Where $P$ represents the probability of a specific outcome occurring. Logistic regression is valued for its simplicity, ease of implementation, and high degree of interpretability, making it an ideal choice for establishing a performance baseline. However, the model assumes a linear relationship between the independent variables and the log-odds of the dependent variable. This assumption often renders it less effective for modelling complex, non-linear relationships found in high-dimensional real-world data \cite{osisanwo2017supervised}.
+
+Despite these theoretical limitations, logistic regression has demonstrated remarkably high accuracy in sporting contexts where feature sets are meticulously curated. For instance, Igiri and Nwachukwu \cite{igiri2014improved} achieved a predictive accuracy of 93.00\% in football match forecasting by applying logistic regression to a dataset of 9 key features. Conversely, in studies where more rigorous validation techniques were employed, the results were more conservative; Zaveri et al. \cite{zaveri2018prediction} utilised 10-fold cross-validation on a 12 feature dataset, resulting in a more modest accuracy of 71.63\%. These varied results suggest that while logistic regression is a powerful baseline tool, its performance is highly sensitive to both the quality of feature engineering and the specific validation methodology used.
 
 \subsection*{K-Nearest Neighbours}
-K-nearest neighbours is a simple to understand model that can be used for classification or \gls{regression} tasks. It calculates the distance of the training points from the new test point, taking the K nearest points to produce a prediction. For classification, the prediction will be the most frequent class among the K neighbours, and for regression it would be average of the values. The size of K is specified by the human, and needs to be adjusted until the value that works best for the specific usage is found. The means of measuring the best value can come from its accuracy, as well as the models run time and performance.
+K-Nearest Neighbours (KNN) is a non-parametric model utilised for both classification and \gls{regression} tasks. The algorithm operates by calculating the distance between a new query point and all existing points in the training dataset, identifying the $K$ nearest instances to formulate a prediction. In a classification context, the output is determined by a majority vote among these $K$ neighbours, whereas in regression, the mean value of the neighbours is typically calculated. The hyper-parameter $K$ is manually specified and must be optimised to balance predictive accuracy against computational latency.
 
-Since KNN calculates the distance from the test point to all the training points for every test point, it can be very computationally expensive as the number of training points grow, leading to slow predictions. Also, unlike other approaches that build models ahead of time, KNN doesn't 'learn' a model, so for every prediction, it requires going through the entire dataset, which makes it memory-intensive. Furthermore, KNN suffers from a phenomenon called the 'curse of dimensionality'. When the amount of dimensions (features per data point) increases, all training points become very far away from the test point, and the difference between the K neighbours is minimal in comparison to the overall distance from the test point. This makes the distance to neighbours less important, which for KNN, is its whole basis. \cite{osisanwo2017supervised}
+Unlike ``eager" learners that construct an internal model during a training phase, KNN is a ``lazy" learner that retains the entire dataset in memory. Consequently, the algorithm is computationally expensive and memory-intensive, as a full scan of the dataset is required for every prediction. Furthermore, KNN is highly susceptible to the ``curse of dimensionality.'' As the number of features increases, the volumetric space expands so rapidly that the available data points become sparse. This causes the distance between the nearest and furthest neighbours to converge, significantly degrading the model's ability to discern patterns \cite{osisanwo2017supervised}.
+
+Horvat et al. \cite{horvat2018prediction} applied KNN to a basketball dataset containing 15 distinct features, achieving an accuracy of 83.96\%. Whilst this result is high, the extreme computational cost associated with processing the extensive feature sets typical of modern esports metrics could cause the Alexa skill to time-out on the user. Alexa skills have a default eight-second window to deliver a response, after which the intent is terminated. Since KNN models require distance calculations to be performed on all data points for each query, a complex model could exceed the time-out limit, resulting in a reduced user experience.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.6\linewidth]{./images/KNN figure.png}
     \caption{Figure Depicting 2D KNN Distances With K = 4}
     \label{fig:KNN}
 \end{figure}
-\subsubsection{Support Vector Machines (SVM)}
+
+\subsection*{Support Vector Machines (SVM)}
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\linewidth]{./images/Support Vectors.png}
-    \caption{Figure Depicting and SVM Example}
+    \caption{Visualisation of SVM Hyperplane and Support Vectors}
     \label{fig:SVM}
 \end{figure}
-SVMs work by finding the hyperplane that best separates the data points of different classes in a high-dimensional space. The optimal hyperplane maximises the margin between the nearest points of each class, known as the support vectors.
 
-SVMs can handle both linear and non-linear data through the use of kernel functions, such as polynomial, radial basis function (RBF), or sigmoid kernels, which map the input data into higher dimensional spaces where it becomes linearly separable. SVMs are effective for high-dimensional datasets and can provide strong generalisation performance. However, they can be computationally expensive for large datasets, and selecting an appropriate kernel and tuning hyper-parameters such as C (regularisation) and gamma is necessary for good performance.\cite{osisanwo2017supervised}
+Support Vector Machines (SVM) function by identifying the optimal hyperplane that separates data points of different classes within a high-dimensional feature space. This hyperplane is determined by maximising the margin between the closest points of each class, which are formally known as support vectors. The goal is to create a decision boundary that is as far as possible from the nearest training instances of any class, thereby enhancing the model's generalisability.
+
+SVMs are particularly versatile due to the use of kernel functions—such as Linear, Polynomial, or Radial Basis Function (RBF)—which project the input data into higher-dimensional spaces where classes that were originally non-linear can become linearly separable. While highly effective for high-dimensional datasets, SVMs can be computationally expensive and require meticulous tuning of hyper-parameters, specifically the regularisation parameter $C$ and the kernel coefficient $\gamma$ \cite{osisanwo2017supervised}.
+
+The efficacy of SVMs in sports analytics is demonstrated by Mustafa et al. \cite{mustafa2017predicting}, who utilised the algorithm to predict cricket match outcomes. By employing 10-fold cross-validation, the study achieved a predictive accuracy of 87.90\%, outperforming several other classifiers. The research highlighted that SVMs are particularly robust when dealing with the diverse, multidimensional feature sets—such as social sentiment and player form—that are characteristic of competitive sports. Similarly, Kravanja \cite{kravanja2013napovedovanje} applied SVMs to a smaller basketball dataset using 3-fold cross-validation, achieving an accuracy of 70.01\%.
 
 \subsection*{Random Forest}
-Random Forest is an \gls{ensemble} learning method based on decision trees, used for classification or regression. They work by constructing a large number of decision trees during training and outputting the majority vote for classification tasks or the average prediction for regression tasks.\footnote{For a visual explanation of random forest, watch \href{https://www.youtube.com/watch?v=v6VJ2RO66Ag}{this.}}
+Random Forest is an ensemble learning method constructed from a multitude of decision trees, applicable to both classification and regression tasks. The algorithm operates by building numerous decision trees during the training phase; for classification, the final output is determined by a majority vote across all trees, whereas for regression, the average of the individual tree predictions is calculated.
 
-The key advantage of Random Forests is their ability to reduce \gls{overfitting} compared to a single decision tree, as each tree is trained on a random subset of the data and considers a random subset of features when splitting nodes. This introduces diversity among the trees, which improves overall performance. Random Forests are robust, can handle large datasets with many features, and provide feature importance metrics. However, they can become memory-intensive and slower to predict as the number of trees grows.\cite{osisanwo2017supervised}
+The primary advantage of the Random Forest architecture is its inherent resistance to overfitting, a common failure for individual decision trees. This is achieved through two layers of randomness. Each tree is trained on a bootstrap sample of the data (bagging), and a random subset of features is considered at each node split. This stochastic process ensures diversity among the constituent trees, leading to a more robust and generalised model. Furthermore, Random Forests provide inherent feature importance metrics, allowing for an empirical assessment of which match variables most significantly impact the final prediction \cite{osisanwo2017supervised}.
+
+In practical sports forecasting, Random Forests have demonstrated consistent reliability across diverse datasets. Knoll and St{\"u}binger \cite{knoll2020machine} attained a predictive accuracy of 75.62\% when applying the algorithm to football match outcomes, noting its ability to handle non-linear interactions without the extensive kernel tuning required by SVMs. Similarly, Lin et al. \cite{lin2014predicting} achieved an accuracy of 65.15\% on a dataset featuring 16 distinct variables pertaining to basketball.
+
+These results are particularly relevant to the Valorant Champions Tour (VCT) context, as the varied team compositions and map-specific anomalies in esports often introduce noise that would cause simpler models to overfit. However, the memory-intensive nature of storing a large forest of trees must be considered. As the number of trees increases to improve accuracy, the model's footprint expands, which may impact the loading times and execution efficiency of the Python backend within an AWS Lambda environment.
 
 \subsection*{Gradient Boosted Trees}
-Gradient Boosted Trees (GBT) are another ensemble method that sequentially creates a decision tree, where each new tree is trained to correct the errors of the previous trees. This is done using gradient descent to minimise a chosen loss function, making the model highly accurate and capable of capturing complex patterns.
+Gradient Boosted Trees (GBT) represent an ensemble learning technique that constructs a predictive model through the sequential addition of decision trees. Unlike Random Forest, which builds trees in parallel (bagging), GBT employs a boosting strategy where each successive tree is specifically trained to reduce the residual errors of the preceding ensemble. This optimisation is achieved through gradient descent, allowing the model to minimise a loss function and capture intricate, non-linear patterns within the data.
 
-GBTs are powerful and often outperform simpler models like Logistic Regression or Random Forests on structured datasets. They are sensitive to hyper-parameter tuning, such as learning rate, number of trees, and tree depth, and can be prone to overfitting if not properly configured. They more computationally intensive than Random Forest, but they have the potential to be a lot more accurate too.\cite{osisanwo2017supervised}
+GBT architectures, such as XGBoost and LightGBM, are renowned for their high predictive accuracy and frequently outperform simpler linear or bag-based models on structured datasets. However, this increased performance necessitates rigorous hyper-parameter tuning; parameters such as the learning rate ($\eta$), tree depth, and the number of boosting iterations must be carefully balanced. Without proper regularisation, GBT models are highly susceptible to overfitting, particularly on datasets with a high degree of noise \cite{osisanwo2017supervised}.
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.9\linewidth]{./images/GBT1.png}
     \includegraphics[width=0.9\linewidth]{./images/GBT2.png}
@@ -228,84 +264,55 @@ GBTs are powerful and often outperform simpler models like Logistic Regression o
     \label{fig:GBT}
 \end{figure}
 
-\begin{table}[H]
+The potential and challenges of boosting algorithms are well-documented in competitive sports research. Elfrink \cite{elfrink2018predicting} utilised the XGBoost implementation to achieve a predictive accuracy of 55.52\% on a highly volatile baseball dataset. While the raw accuracy appears lower than simpler models in other studies, it reflects the challenges of predicting outcomes in environments with high unpredictability. Additionally, Tax and Joustra \cite{tax2015predicting} achieved 56.10\% using the LogitBoost algorithm to predict dutch football results, noting that while boosting is computationally more intensive than Random Forest, it offers superior capability in modelling the complex, strategic shifts inherent in professional match-ups.
+
+For the Alexa skill, GBT—and specifically the LightGBM implementation—is identified as a good candidate for the final model. Given the eight-second latency limit of the Amazon Alexa platform, the ``Leaf-wise" growth strategy of LightGBM is particularly advantageous, as it typically offers faster training and inference speeds than traditional depth-wise GBT implementations. This ensures that the model can maintain high accuracy while remaining within the technical constraints of a real-time voice interface.
+
+\begin{table}
     \centering
-    \begin{tabular}{|l|>{\raggedright\arraybackslash}m{5cm}|>{\raggedright\arraybackslash}m{5cm}|}
-        \hline
-        \textbf{Model} & \textbf{Pros} & \textbf{Cons} \\ \hline
-
-        \textbf{Linear Regression} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Simple to understand and implement
-            \item Quick to train
-            \item Provides a baseline for comparison
-        \end{itemize}\vspace{4pt} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Assumes linear relationship between variables
-            \item Poor performance on non-linear data
-        \end{itemize}\vspace{4pt} \\ \hline
-
-        \textbf{Logistic Regression} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Produces probabilistic outputs
-            \item Easy to implement and interpret
-            \item Works well as a baseline classifier
-        \end{itemize}\vspace{4pt} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Assumes linear relationship between independent variables and log-odds
-            \item Limited for complex non-linear relationships
-        \end{itemize}\vspace{4pt} \\ \hline
-
-        \textbf{K-Nearest Neighbours (KNN)} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Simple to understand and implement
-            \item Can be used for classification or regression
-            \item No training phase required
-        \end{itemize}\vspace{4pt} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Computationally expensive for large datasets
-            \item Memory-intensive (stores all training data)
-            \item Performance degrades in high dimensions (curse of dimensionality)
-        \end{itemize}\vspace{4pt} \\ \hline
-
-        \textbf{Support Vector Machines (SVM)} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Effective in high-dimensional spaces
-            \item Can handle non-linear data via kernels
-            \item Strong generalisation performance
-        \end{itemize}\vspace{4pt} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Computationally expensive for large datasets
-            \item Requires careful selection of kernel and hyper-parameters
-        \end{itemize}\vspace{4pt} \\ \hline
-
-        \textbf{Random Forest} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Reduces overfitting compared to single decision trees
-            \item Handles large datasets and many features
-            \item Provides feature importance metrics
-            \item Robust and relatively easy to tune
-        \end{itemize}\vspace{4pt} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Can become memory-intensive
-            \item Slower prediction with many trees
-        \end{itemize}\vspace{4pt} \\ \hline
-
-        \textbf{Gradient Boosted Trees (GBT)} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item High predictive accuracy
-            \item Captures complex patterns
-            \item Often outperforms simpler models
-        \end{itemize}\vspace{4pt} &
-        \vspace{4pt}\begin{itemize}[leftmargin=*,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1pt]
-            \item Computationally intensive
-            \item Sensitive to hyper-parameter tuning
-            \item Can overfit if not properly \gls{regularised}
-        \end{itemize}\vspace{4pt} \\ \hline
-
-    \end{tabular}
-    \caption{Pros and cons of each machine learning model described.}
+    \small
+    \begin{tabularx}{\linewidth}{@{} l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{3.5cm} @{}}
+        \toprule
+        \textbf{Model} & \textbf{Key Advantages} & \textbf{Primary Drawbacks} & \textbf{Suitability for Valorant Data} \\ 
+        \midrule
+        
+        \textbf{Logistic Regression} & 
+        Probabilistic outputs; highly interpretable; computationally efficient. & 
+        Assumes linear relationship; poor at capturing complex interactions. & 
+        \textbf{High (Baseline):} Ideal for establishing a performance floor. \\
+        \addlinespace
+        
+        \midrule
+        \textbf{K-Nearest Neighbours} & 
+        Simple logic; no formal training phase required. & 
+        Memory-intensive; suffers from the `curse of dimensionality'. & 
+        \textbf{Low:} High feature count in VCT data makes distance-based metrics unreliable. \\
+        \addlinespace
+        
+        \midrule
+        \textbf{Support Vector Machines} & 
+        Effective in high-dimensional spaces; handles non-linear data via kernels. & 
+        Computationally expensive for large datasets; sensitive to hyper-parameters. & 
+        \textbf{Moderate:} Potentially accurate, but complexity of kernel tuning outweighs benefits for this data. \\
+        \addlinespace
+        
+        \midrule
+        \textbf{Random Forest} & 
+        Reduces overfitting; handles mixed data types; provides feature importance. & 
+        Can be memory-intensive; slower prediction speeds as tree count increases. & 
+        \textbf{High:} Robust to the varied team compositions and map-specific anomalies. \\
+        \addlinespace
+        
+        \midrule
+        \textbf{Gradient Boosted Trees} & 
+        State-of-the-art accuracy; captures intricate non-linear patterns. & 
+        Prone to overfitting if not regularised; sensitive to learning rate tuning. & 
+        \textbf{Optimal:} Capable of modelling complex strategic shifts and round-by-round momentum. \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Comparative Analysis of Machine Learning Models and their Applicability to VCT Match Prediction.}
     \label{tab:MLModelProsCons}
 \end{table}
-\noindent
-Based on the pros and cons of each classification algorithm, I have chosen to use Random Forest initially to quickly establish a baseline accuracy, and then I will implement Gradient Boosted Trees (GBT) to improve predictive performance, taking care to properly tune hyper-parameters and apply \gls{regularisation} to prevent overfitting.
+
+\subsection*{Conclusion}
+By comparing the strengths of these paradigms as shown in \autoref{tab:MLModelProsCons} with the specific requirements of VCT match data, the selection of Random Forest and Gradient Boosted Trees is justified. Unlike KNN or SVM, which struggle with the high-dimensional and categorical nature of Valorant match statistics like map names and agent roles, ensemble tree-based methods are robust to outliers and can model the complex, non-linear interactions between player performance and match outcome. The following chapters will detail the requirements for this project, as well as the design and implementation of these models using the sourced VCT dataset.
