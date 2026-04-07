@@ -37,6 +37,7 @@ Following a comparative evaluation of the supported environments for Alexa Skill
 \end{itemize}
 
 \section{The Dataset}
+\label{sec:dataset}
 To develop a machine learning model with predictive power beyond stochastic chance, a robust set of features must be identified and obtained. Within the context of a Valorant match, data granularity ranges from high-level outcomes, such as the overall winner, to round-specific metrics, such as individual elimination counts. This spectrum of data allows for an iterative development approach: a model may be initialised using a small subset of primary features, with more complex, derived features integrated during later stages of implementation.
 
 Two primary methods for acquiring a suitable dataset were evaluated: manual creation via web-scraping or the utilisation of a pre-existing dataset. The manual creation of a dataset would require the development of a bespoke web-scraper to request the HTML content of match results from historical VCT data since 2021. Extracting features from a repository such as VLR.gg \cite{vlr_gg} would involve querying the DOM using feature unique CSS selectors, such as \texttt{\#wf-title-med} for the team names. While this method offers maximum control over the data schema, the process of extraction, standardisation, and anomaly detection is substantially time-consuming.
@@ -266,7 +267,7 @@ GBT architectures, such as XGBoost and LightGBM, are renowned for their high pre
 
 The potential and challenges of boosting algorithms are well-documented in competitive sports research. Elfrink \cite{elfrink2018predicting} utilised the XGBoost implementation to achieve a predictive accuracy of 55.52\% on a highly volatile baseball dataset. While the raw accuracy appears lower than simpler models in other studies, it reflects the challenges of predicting outcomes in environments with high unpredictability. Additionally, Tax and Joustra \cite{tax2015predicting} achieved 56.10\% using the LogitBoost algorithm to predict dutch football results, noting that while boosting is computationally more intensive than Random Forest, it offers superior capability in modelling the complex, strategic shifts inherent in professional match-ups.
 
-For the Alexa skill, GBT—and specifically the LightGBM implementation—is identified as a good candidate for the final model. Given the eight-second latency limit of the Amazon Alexa platform, the ``Leaf-wise" growth strategy of LightGBM is particularly advantageous, as it typically offers faster training and inference speeds than traditional depth-wise GBT implementations. This ensures that the model can maintain high accuracy while remaining within the technical constraints of a real-time voice interface.
+For the Alexa skill, GBT—and specifically the LightGBM implementation—is identified as a good candidate for the final model. Given the eight-second latency limit of the Amazon Alexa platform, the leaf-wise growth strategy of LightGBM is particularly advantageous, as it typically offers faster training and inference speeds than traditional depth-wise GBT implementations. This ensures that the model can maintain high accuracy while remaining within the technical constraints of a real-time voice interface.
 
 \begin{table}
     \centering
