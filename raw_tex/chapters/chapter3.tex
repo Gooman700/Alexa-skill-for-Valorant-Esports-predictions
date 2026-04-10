@@ -1,4 +1,5 @@
 \chapter{Requirements and Analysis}
+\label{chap:req_analysis}
 This chapter defines the functional and non-functional requirements of the proposed system, establishing a framework for development and a benchmark for final evaluation. These requirements serve as measurable milestones to track progress and ensure the project aligns with its core objectives. To provide a structured implementation roadmap, each requirement is prioritised using the \textbf{MoSCoW} (Must have, Should have, Could have, Won't have) method, alongside an estimation of the relative development effort required.
 
 The analysis breaks the overarching problem into distinct, manageable work packages, ranging from data aggregation and model training to voice interface design. Furthermore, this chapter addresses the legal and ethical considerations relevant to public datasets and esports data, ensuring the project adheres to established data protection standards and intellectual property rights.
@@ -96,22 +97,9 @@ Once the dataset has been ingested and validated for integrity, the project move
 The transformation process will also involve the calculation of ``Differential Features." Machine learning models, particularly tree-based ensembles, often benefit from seeing the relative strength between two competitors. Therefore, the implementation will involve calculating the difference between Team A and Team B for key metrics, such as \textit{Differential Average Combat Score} or \textit{Differential Round Win Rate}. This reduces the dimensionality of the input while highlighting the competitive gap between the two teams, which is a primary indicator of match outcomes.
 
 \section{Model Development}
-With a structured table of rolling features and differentials established, the project will transition to the model engineering phase. This involves defining the architecture for the chosen supervised learning algorithms: Logitstic Regression and Gradient Boosted Trees. The implementation will follow a standard ``Train-Test-Tweak" cycle. Initially, a baseline will be established using Logistic Regression to provide a point of comparison for the more complex ensemble model.
+With a structured table of rolling features and differentials established, the project will transition to the model engineering phase. This involves defining the architecture for the chosen supervised learning algorithms: Logistic Regression and Gradient Boosted Trees. The implementation will follow a standard ``Train-Test-Tweak" cycle. Initially, a baseline will be established using Logistic Regression to provide a point of comparison for the more complex ensemble model.
 
-The training process will incorporate hyper-parameter tuning to optimise model performance. Parameters such as the number of estimators, maximum depth, and learning rate will be adjusted manually. Following each training iteration, the model will be evaluated against the 20\% hold-out test set using the metrics defined in the evaluation strategy (Accuracy, F1-Score, and Precision). This iterative process will continue until the 60\% accuracy threshold is consistently met or exceeded. Once an optimal model is produced, it will be serialised and exported using the \textit{Joblib} or \textit{Pickle} libraries to allow for efficient loading within the AWS Lambda environment.
-
-define intent
-define utterances
-define slots and slot values
-code intent
-    grab slots
-    check if they exist in the rolling data
-    if not send back meaningful error and prompt for missing/incorrect slots
-    return slot values to be used in the model
-    make model prediction and get results
-    output result
-    ask the user if they want to make another prediction
-    code the yes and no intents along with the last intent variable
+The training process will incorporate hyper-parameter tuning to optimise model performance. Parameters such as the number of estimators, maximum depth, and learning rate will be adjusted manually. Following each training iteration, the model will be evaluated against the 20\% hold-out test set using the metrics defined in the evaluation strategy (accuracy, F1-score, and precision). This iterative process will continue until the 60\% accuracy threshold is consistently met or exceeded. Once an optimal model is produced, it will be serialised and exported using the \textit{Joblib} or \textit{Pickle} libraries to allow for efficient loading within the AWS Lambda environment.
 
 \section{Legal and Ethical Considerations}
 The development and deployment of a predictive esports skill involves several legal and ethical dimensions, ranging from data ownership to the social implications of AI-driven forecasting.
@@ -120,7 +108,7 @@ The development and deployment of a predictive esports skill involves several le
 The primary dataset used for model training is sourced from Kaggle \cite{ryanluong_dataset} and is utilised under its specified academic or open-source licence. Furthermore, match data referenced from VLR.gg \cite{vlr_gg} is used strictly for non-commercial, academic research purposes. The project acknowledges the intellectual property of Riot Games as the developer of Valorant; however, the use of public match statistics for algorithmic analysis is generally considered fair use within an educational context.
 
 \subsection{Data Protection}
-As an Alexa-hosted application, the skill adheres to the ``Privacy by Design'' principle. The system does not record or store Personal Identifiable Information (PII). Voice recordings are processed by Amazon's Alexa Voice Service (AVS), and the skill only receives the resulting intent and slot data. No persistent user data is stored on AWS Lambda beyond the duration of the active session, ensuring compliance with the GDPR and the UK Data Protection Act 2018.
+As an Alexa-hosted application, the skill adheres to the ``Privacy by Design'' principle. The system does not record or store personal identifiable information. Voice recordings are processed by Amazon's Alexa Voice Service (AVS), and the skill only receives the resulting intent and slot data. No persistent user data is stored on AWS Lambda beyond the duration of the active session, ensuring compliance with the GDPR and the UK Data Protection Act 2018.
 
 \subsection{Gambling Ethics}
 A fundamental ethical requirement of this project is to manage user expectations regarding the fallibility of machine learning. It is imperative to communicate that the model's outputs are probabilistic estimates based on historical data, rather than absolute certainties. To mitigate the risk of the skill being misused as a financial advisory tool for gambling, a clear disclaimer will be included on the skill's distribution page. 
