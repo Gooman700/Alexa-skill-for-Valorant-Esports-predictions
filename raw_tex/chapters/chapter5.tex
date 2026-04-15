@@ -19,9 +19,6 @@ The interaction model will be configured to mark both `team\_a' and `team\_b' as
 
 In instances where a user provides an incomplete utterance, the system will enter a ``re-prompt" state to resolve the missing information. This will be programmatically managed via the \texttt{add\_\allowbreak directive} method of the ASK SDK, which facilitates the queuing of specific response instructions. Specifically, the system will be designed to instantiate and pass an \texttt{ElicitSlot\allowbreak Directive} object to this method. This directive will explicitly instruct the Alexa service to prompt the user for the specific missing slot (e.g., ``I didn't hear the second team. Which team is Fnatic playing against?''). To ensure a fluid conversational experience, the system will utilise the \texttt{Session\allowbreak Attributes} and \texttt{IntentRequest} objects to maintain state. This architecture ensures that previously gathered information is persisted in the session context, preventing the loss of the first team's identity while the second is being elicited. Consequently, the final prediction logic will only be triggered once a complete and validated set of slot values is present in the request envelope.
 
-\section{Data Derivatison}
-Talk about how I will turn the raw features into calculated derived features. Explain how I will review the weights on each feature to try and pick ones that explain the relationship the most, without having multiple that explain the same thing (Multicollinearity). Include use of pandas functions that will be used, such as merge.
-
 \section{Data Transformation}
 The design of the machine learning algorithm will rely on a data derivation pipeline that transforms raw \gls{vct} statistics into high-level predictive features. Because professional Valorant performance is evolutionary and subject to meta-shifts, raw match figures are insufficient when used in isolation. Due to frequent balancing updates around agent abilities and map layouts, statistics pertaining to matches played in previous updates hold less predictive power when compared to new match data. Instead, the system will be designed to derive features that represent a team's current ``form'' and relative competitive strength.
 
@@ -36,7 +33,7 @@ Finally, the environmental context of the match will be handled through the proc
 
 \begin{table}[H]
 \centering
-\caption{Summary of Engineered Features and Predictive Utility}
+\caption{Summary of Engineered Features}
 \label{tab:feature_summary}
 \small
 \begin{tabular}{|>{\raggedright\arraybackslash}p{3.5cm}|p{9.5cm}|}
@@ -51,19 +48,16 @@ Finally, the environmental context of the match will be handled through the proc
 \end{table}
 
 \subsection{Dimensionality Reduction}
-A critical design challenge is the selection of a feature subset that maximises predictive power while minimising redundancy. Including multiple features that explain the same underlying relationship---such as total eliminations and damage dealt---can introduce multicollinearity. This state can lead to an overfit model that is overly sensitive to noise and fails to generalise to unseen match data.
+After the aforementioned features have been derived, the dataset must be checked for multicollinearity. Failure to do so could result in multiple independent variables being highly correlated, wasting the computational resources available. This state can lead to an overfit model that is overly sensitive to noise and fails to generalise to unseen match data.
 
-The design will involve a **Feature Weighting Review** during the preliminary training phase. The following methods will be implemented to refine the feature set:
-\begin{itemize}
-    \item \textbf{Correlation Analysis:} A correlation matrix will be generated to identify features with high internal coefficients. Where two features provide redundant information, the design specifies that only the feature with the highest correlation to the target variable (the match winner) will be retained.
-    \item \textbf{Differential Calculation:} The model will be designed to process ``Differential Features.'' By calculating the delta between Team A and Team B metrics (e.g., $Team\_A\_ACS - Team\_B\_ACS$), the system collapses two absolute values into a single relative metric. This design choice is justified as it directly quantifies the competitive gap between the two organisations, which serves as a more potent predictor than isolated statistics.
-\end{itemize}
+The design involves a feature weighting review during the preliminary training phase. The model will be designed to process differential features. By calculating the delta between Team A and Team B metrics (e.g., $Team\_A\_Score - Team\_B\_Score$), the system collapses two absolute values into a single relative metric. This directly quantifies the competitive gap between the two teams, which serves as a more potent predictor than isolated statistics. Additionally, a correlation matrix will be generated to identify features with high internal coefficients. Where two features provide redundant information, only the feature with the highest correlation to the target variable (the match winner) will be retained.
 
-\subsection{Feature Persistence and Latency Optimization}
-To satisfy the non-functional requirement for low-latency responses, these derived features will be stored in a pre-calculated **Feature Store**. The design dictates that the Logic Tier will not perform these heavy derivations in real-time during an Alexa session. Instead, the lambda function will use the resolved team \glspl{slot} to perform a high-speed lookup in a pre-processed table. This trade-off ensures that complex statistical analysis is performed offline, allowing the inference engine to deliver predictions within the specified six-second window.
+\subsection{Team-Specific Feature Storage}
+To satisfy the latency requirements defined in \autoref{chap:req_analysis}, the system will utilise a pre-calculated feature store for team-specific metrics. For each independent data point required to calculate differential features---such as \texttt{Roll\_Form} or \texttt{Roll\_RD}---the most recent rolling average value will be persisted within a structured CSV file. This file will include a \texttt{Team\_ID} column to serve as a primary key, facilitating efficient relational mapping between the Alexa slot values and the historical dataset.
+
+This design enables an offline, local cache of the most up-to-date features to be bundled within the AWS Lambda environment. By hosting the feature store locally within the execution context, the system eliminates the significant latency that would otherwise arise from on-the-fly calculations or remote database queries. Instead, the Lambda function will use the resolved team \glspl{slot} to perform a high-speed lookup in the pre-processed table. This architectural choice ensures that match predictions are delivered within the six-second window specified in the non-functional requirements.
 
 \section{Machine Learning Model}
-
 Logistic regression was chosen because it's fast to implement - few hyper params, but it doesnt work on high dimensionality data. however, looking at the sources that used it, their dimensionality is going to be similar to mine, and it worked for them.
 
 Talk about what I wanted the final model's training table to look like - the columns
