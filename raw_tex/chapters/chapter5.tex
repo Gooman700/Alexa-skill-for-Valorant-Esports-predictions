@@ -1,5 +1,4 @@
 \chapter{Design}
-\section{Project Architecture}
 The design of the VCT match predictor follows a modular, event-driven architecture. This methodology was selected to ensure a strict separation of concerns between the VUI and the underlying machine learning logic. By decoupling the presentation layer (Alexa Skill) from the processing layer (AWS Lambda), the system becomes highly maintainable; for instance, the machine learning model can be retrained and redeployed without necessitating changes to the front-end interaction model.
 
 This approach is further justified by the serverless nature of the deployment environment. An event-driven design aligns with the execution patterns of AWS Lambda, where the system only consumes computational resources in response to a specific user request. This ensures high scalability and cost-efficiency while meeting the low-latency requirements established in \autoref{chap:req_analysis}. To facilitate this modularity, the system will be structured into a three-layer architecture.
@@ -14,10 +13,60 @@ The core functionality of the skill will be encapsulated within an intent called
 
 AVS will attempt to map the spoken team names to the canonical values defined in the `teams' slot type. In scenarios where the audio input is phonetically ambiguous, AVS will resolve the speech to multiple potential matches, which will be delivered to the AWS Lambda function as a collection of resolutions ordered by confidence scoring. The backend logic will be designed to evaluate these resolutions, prioritising the high-confidence match while maintaining the ability to trigger a disambiguation prompt if the resolution is below a specific certainty threshold. This ensures that even with slight mispronunciations, the intent will still receive the correct team identifiers required for the machine learning inference.
 
-\subsection{Dialogue Management}
-The interaction model will be configured to mark both `team\_a' and `team\_b' as required, allowing for manual delegation to be enabled within the backend logic. Automatic Alexa-led delegation is an available configuration; however, the design for this project will employ manual delegation. While automatic delegation simplifies the interaction model, it offers limited control over the specific linguistic prompts and error-handling logic. By implementing a manual strategy, the backend logic can evaluate the state of the slots at each turn of the conversation. If the model detects that a team name provided by the user is phonetically valid but missing from the training dataset, a custom prompt will be triggered using the \texttt{ElicitSlotDirective}. This level of granularity is not possible with automatic delegation, making the manual approach essential for fulfilling the project's requirement to provide context-aware, meaningful error messages and ensure a fluid user experience.
+\subsection{Happy Path and Storyboards}
+Due to this project having to validate slot values within the user's request, there is potential for a large volume of edge cases. A ``happy path'' is a demonstration of a flawless interaction that a user can have with a skill, and Amazon recommends creating one to act as a guide for identifying these edge cases that deviate from the smoothest experience \cite{happypath:online}. An illustration of the happy path established for this project can be seen in \autoref{fig:happy_path} below. This path depicts a first time user being introduced to the skill, asking for a prediction, confirming that they would like to make another request, and subsequently asking for a team's match history. At each step, there are various edge cases which must be accounted for and answered, to ensure that the user receives a positive experience. The most common type of `error' would be user mispronunciations, which would result in a non-standard response being sent to the Lambda Function. In this instance, the Lambda function must correctly identify that the request is malformed, and gracefully inform the user of the issue without crashing, enabling the user to correct their response and continue. Following the definition of the happy path, which provides a strong foundation of the skill's core flow, it is pertinent to explore additional user experiences so that exceptions can be caught and the proper recovery mechanisms can be implemented. For each node in the happy path, potential request variations were identified and subsequent responses produced, resulting in the creation of the storyboards illustrated in \autoref{chap:storyboards}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{./images/happy_path.png}
+    \caption{The ``happy path'' for a user generating a prediction and a history request.}
+    \label{fig:happy_path}
+\end{figure}
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabularx}{\linewidth}{@{} l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X @{}}
+        \toprule
+        \textbf{Edge Case} & \textbf{Trigger} & \textbf{Mitigation} \\ 
+        \midrule
+        
+        \textbf{Unheard Response} & 
+        The user supplies an inaudible answer (e.g., muffled, partial, or quiet). & 
+        Alexa informs the user that she did not hear their answer and re-prompts, allowing them to provide another input. \\
+        \addlinespace
+        
+        \midrule
+        \textbf{Unfilled Slots} & 
+        The user supplied a request which was correctly mapped to an intent, but there were missing required slots. & 
+        Alexa informs the user that she did not catch a specific piece of information and prompts the user to provide it separately. \\
+        \addlinespace
+        
+        \midrule
+        \textbf{Unexpected Slot Values} & 
+        The team names do not resolve to existing teams stored in the database, or an unsupported statistic is requested. & 
+        Alexa informs the user that she heard the value, but does not recognize it within the database. \\
+        \addlinespace
+        
+        \midrule
+        \textbf{Missing Database Fields} & 
+        The team name resolves correctly, but there is no associated statistical data for that team. & 
+        Alexa confirms the team identity but informs the user that she does not have the statistics for them at the moment. \\
+        \addlinespace
+        
+        \midrule
+        \textbf{Unsolvable Parameters} & 
+        The request is valid, but one of the parameters is logically impossible (e.g., requesting results for one million past games). & 
+        Alexa explains the limitation and informs the user that the request cannot be fulfilled as stated. \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Edge Cases and Mitigation Strategies Obtained From the Analysis of the project Storyboards.}
+    \label{tab:EdgeCaseHandling}
+\end{table}
+\autoref{tab:EdgeCaseHandling} provides an analysis of the information acquired as a result of the storyboards designed. The edge case mitigations specified are designed to cover all possible erroneous user inputs, inlcuding combinations of different errors. The mitigations range from trivial resolutions such as reprompting the user to answer again, to more case-specific, complex ones. For example, in the instance of a match prediction request with only one missing slot, Alexa must identify the issue and ask the user to repeat only the missing value, without discarding the previously obtained slot values.
 
-In instances where a user provides an incomplete utterance, the system will enter a ``re-prompt" state to resolve the missing information. This will be programmatically managed via the \texttt{add\_\allowbreak directive} method of the ASK SDK, which facilitates the queuing of specific response instructions. Specifically, the system will be designed to instantiate and pass an \texttt{ElicitSlot\allowbreak Directive} object to this method. This directive will explicitly instruct the Alexa service to prompt the user for the specific missing slot (e.g., ``I didn't hear the second team. Which team is Fnatic playing against?''). To ensure a fluid conversational experience, the system will utilise the \texttt{Session\allowbreak Attributes} and \texttt{IntentRequest} objects to maintain state. This architecture ensures that previously gathered information is persisted in the session context, preventing the loss of the first team's identity while the second is being elicited. Consequently, the final prediction logic will only be triggered once a complete and validated set of slot values is present in the request envelope.
+\subsection{Dialogue Management}
+As a result of the identified mitigation strategies, the interaction model will be configured to mark both `team\_a' and `team\_b' as required, allowing for manual delegation to be enabled within the backend logic. This will provide a concrete approach to implement the turn-based logic as required by the designed mitigations. While automatic delegation simplifies the interaction model, it offers limited control over the specific linguistic prompts and error-handling logic. By implementing a manual strategy, the backend logic can evaluate the state of the slots at each turn of the conversation. If the model detects that a team name provided by the user is phonetically valid but missing from the training dataset, a custom prompt will be triggered using the \texttt{ElicitSlotDirective}. This level of granularity is not possible with automatic delegation, making the manual approach essential for fulfilling the project's requirement to provide context-aware, meaningful error messages and ensure a fluid user experience.
+
+In instances where a user provides an incomplete utterance, the system will enter a ``re-prompt" state, as outlined in \autoref{tab:EdgeCaseHandling}, to resolve the missing information. This will be programmatically managed via the \texttt{add\_\-directive} method of the ASK SDK, which facilitates the queuing of specific response instructions. Specifically, the system will be designed to instantiate and pass an \texttt{ElicitSlot\-Directive} object to this method. This directive will explicitly instruct the Alexa service to prompt the user for the specific missing slot (e.g., ``I didn't hear the second team. Which team is Fnatic playing against?''). To ensure a fluid conversational experience, the system will utilise the \texttt{Session\-Attributes} and \texttt{IntentRequest} objects to maintain state. This architecture ensures that previously gathered information is persisted in the session context, preventing the loss of the first team's identity while the second is being elicited. Consequently, the final prediction logic will only be triggered once a complete and validated set of slot values is present in the request envelope.
 
 \section{Data Transformation}
 The design of the machine learning algorithm will rely on a data derivation pipeline that transforms raw \gls{vct} statistics into high-level predictive features. Because professional Valorant performance is evolutionary and subject to meta-shifts, raw match figures are insufficient when used in isolation. Due to frequent balancing updates around agent abilities and map layouts, statistics pertaining to matches played in previous updates hold less predictive power when compared to new match data. Instead, the system will be designed to derive features that represent a team's current ``form'' and relative competitive strength.
@@ -63,21 +112,23 @@ The predictive core of the system will be designed using a supervised learning a
 \subsection{Algorithm Selection}
 Logistic Regression will be implemented as the primary baseline model. While Logistic Regression is a linear classifier and may struggle with the complex, non-linear relationships often present in esports data, its inclusion is justified as a performance benchmark. As noted in the analysis of similar predictive systems, Logistic Regression offers high interpretability and extremely low computational overhead, making it an ideal control against which the performance of more complex models can be measured.
 
-To capture the non-linear interactions between features, the system will utilise Gradient Boosted Trees. This method is strong against outliers and capable of performing internal feature selection, which could prove helpful for handling the inherent noise within esports data. The Scikit-Learn library will be used for model implementation due to its comprehensive suite of ML algorithms and evaluation tools.
+To capture the non-linear interactions between features, the system will utilise gradient boosted trees. This method is strong against outliers and capable of performing internal feature selection, which could prove helpful for handling the inherent noise within esports data. The Scikit-Learn library will be used for model implementation due to its comprehensive suite of ML algorithms and evaluation tools.
 
 \subsection{Training Strategy}
-The model's hyper-parameters, specifically for the gradient boosted model---including learning\_rate, n\_estimators, and max\_depth---will be methodically stepped until an optimum value is reached. This will ensure that accuracy is not lost due to sub-optimal hyper-parameter values, and is instead near the best it can be.
+The model's hyper-parameters, specifically for the gradient boosted model---including learning\_r\-ate, n\_estimators, and max\_depth---will be methodically stepped until an optimal value is reached. This will ensure that accuracy is not lost due to sub-optimal hyper-parameter values. One hyper-parameter will be refined at a time, until all are optimised. During training, the individual feature weights given by the model can be examined to inform future design changes for the feature set. Existing features can be discarded, and new features can be introduced, negating the impact of multicollinearity and improving the explained variance coverage.
 
 \subsection{Model Serialisation}
 To integrate the trained model into the logic layer, the final model will be serialised using the \texttt{joblib} library. This process converts the trained Python object into a persistent \texttt{.joblib} file format. This file will be packaged within the AWS Lambda deployment, allowing the Lambda Function to load the model into memory instantly upon invocation, bypassing the need for a training phase during the user's request.
 
-\section{Lambda Function Logic and Integration}
-The AWS Lambda function serves as the integration point between the \gls{vui} and the machine learning model. The internal logic of the function will be designed using a **Handler Pattern** to ensure clean routing of requests.
+\section{Lambda Function Design}
+The AWS Lambda function serves as the integration point between the \gls{vui} and the machine learning model. The internal logic of the function will be designed using a handler pattern---as expected of the Alexa Skills Kit (\gls{ask})---to ensure clean routing of requests.
 
 \subsection{Request Processing Flow}
-Upon receiving the JSON request from \gls{avs}, the function will execute a structured three-step sequence:
-\begin{enumerate}
-    \item \textbf{Intent Routing:} The function will identify the \texttt{PredictMatchIntent} and extract the canonical IDs for the requested teams from the request envelope.
-    \item \textbf{Feature Alignment:} Using the pre-calculated CSV feature store described in \autoref{tab:feature_summary}, the function will perform a lookup for the features corresponding to the team IDs. It will then calculate the **Differential Vector** ($Team\_A - Team\_B$) to format the data for the model input.
-    \item \textbf{Inference and Response:} The serialized model will be invoked to produce a probability score. This score will be mapped to a natural language string using ssml (Speech Synthesis Markup Language) to ensure Alexa delivers the prediction with appropriate prosody and emphasis, before closing the session or prompting for a follow-up.
-\end{enumerate}
+- Cascading of intents to reach the correct handler (check if intent is of the same type as the handler)
+
+- trigger intent, try to get slots
+
+- try to resolve slot values into IDs
+
+- 
+Upon receiving the JSON request from \gls{avs}, the function will execute a structured three-step sequence

@@ -7,3 +7,36 @@
 \label{app:questionnaire_application}
 \includepdf[pages=-]{images/questionnaire_ethics_application.pdf}
 \includepdf[pages=-]{images/questionnaire_approval_letter.pdf}
+
+\chapter{Storyboards}
+\label{chap:storyboards}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{./images/storyboards/storyboard_bad_confirmation.png}
+    \caption{The storyboard for the scenario where a yes/no confirmation is not heard. The skill employs a standard catch all, asking the user to repeat themselves.}
+    \label{fig:bad_confirmation}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{./images/storyboards/storyboards_missing_team.png}
+    \caption{The storyboard for the scenario where a user requests a match prediction between two teams, but one of the teams was not heard. The skill responds by informing the user which team was heard, and to repeat the name of the other team.}
+    \label{fig:missing_slot}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{./images/storyboards/storyboards_incorrect_team.png}
+    \caption{The storyboard for the scenario where the user requests a match prediction, but one of the teams does not exist in the host-side data store needed to make a prediction.}
+    \label{fig:incorrect_team}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{./images/storyboards/storyboards_no_team_data.png}
+    \caption{The storyboard for the scenario where the user requests a match prediction, both teams exist in the database, but one of the teams has missing values in the concerned fields.}
+    \label{fig:missing_stats}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{./images/storyboards/storyboards_no_history.png}
+    \caption{The storyboard for the scenario where the user requests the outcome history of a team, with a window size that exceeds the stored data for that team. The skill informs the user that it does not have stats concerning the requested history, and to ask about a more recent time-frame.}
+    \label{fig:no_history}
+\end{figure}
