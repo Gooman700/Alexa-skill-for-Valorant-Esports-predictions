@@ -2,14 +2,7 @@
 \label{chap:technology survey}
 
 \section{Amazon Alexa and Google Assistant}
-In the domain of voice-activated smart speakers, the market is primarily led by two ecosystems: the Amazon Echo range and the Google Home series. Both systems utilise virtual assistants---Alexa and Google Assistant, respectively---which are activated via a specific wake command, such as ``Alexa'' or ``Hey Google''. These platforms allow third-party developers to create bespoke applications, referred to as `skills' in the Amazon ecosystem and `actions' within Google's, which can be invoked by users to extend the device's functionality.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.9\linewidth]{./images/Voice Command.png}
-\caption{Visualisation of the Request-Response Cycle within an Alexa Skill}
-\label{fig:alexa-diagram}
-\end{figure}
+In the domain of voice-activated smart speakers, the market is primarily led by two ecosystems: Amazon Echo and Google Home. Both systems utilise virtual assistants---Alexa and Google Assistant, respectively---which are activated via a specific wake command, such as ``Alexa'' or ``Hey Google''. These platforms allow third-party developers to create bespoke applications, referred to as `skills' in the Amazon ecosystem and `actions' within Google's, which can be invoked by users to extend the device's functionality.
 
 Data provided by Statista Consumer Insights indicates that Amazon maintains a significantly larger market share compared to Google in the smart speaker sector (\autoref{fig:SmartSpeakerChart}). Consequently, the Amazon Alexa platform represents a more strategic target for development, offering a broader potential user base for the deployment of new predictive tools.
 
@@ -21,14 +14,21 @@ Data provided by Statista Consumer Insights indicates that Amazon maintains a si
 \end{figure}
 
 \section{Platform Selection and Technical Constraints}
-The development of an Alexa skill is facilitated through the Amazon Developer Console, a cloud-based environment used for the configuration and management of voice interactions. While the platform supports various programming languages, Python and JavaScript are provided as the primary languages with native \gls{sdk} (Software Development Kit) support. Hosting typically involves AWS Lambda, a serverless computing platform, though developers may also provision custom endpoints for local execution and debugging.
+The development of an Alexa skill is facilitated through the Amazon Developer Console, a cloud-based environment used for the configuration and management of voice interactions. While the platform supports various programming languages, Python and JavaScript are provided as the primary languages with native \gls{sdk} (Software Development Kit) support. Hosting typically involves AWS Lambda, a serverless computing platform, though developers may also provision custom endpoints for local execution and debugging. \autoref{fig:alexa-diagram} below illustrates the cycle executed upon a user request.
 
-A critical technical constraint was identified during the evaluation of the Google Home ecosystem. Google has recently deprecated `conversational actions' in favour of `app actions', as documented in the Assistant Developer documentation\cite{google_sunset}. This shift implies that new Google Assistant developments must be tethered to a corresponding Android application. Given that this project is intended to function as a standalone voice service without a prerequisite mobile application, the sunsetting of conversational actions effectively precludes Google Home as a viable launchpad. Therefore, the decision was made to proceed exclusively with the Amazon Alexa platform.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\linewidth]{./images/Voice Command.png}
+\caption{Visualisation of the Request-Response Cycle within an Alexa Skill. A user's spoken request is recorded by the Amazon Echo device, and pinged to the Alexa Voice Service (\gls{avs}) for natural language processing. AVS subsequently translates the audio into text, which is analysed to identify potential \glspl{intent} that the user is aiming to invoke. A JSON request is created and sent to the skill's endpoint, containing the name of the matched intent, any \gls{slot} values, and metadata about the request. The endpoint programmatically parses the request and returns a text output, which is sent to AVS to translate into speech, finally being spoken by the Echo device.}
+\label{fig:alexa-diagram}
+\end{figure}
 
-\section{Language Selection and Development Environment}
-Selecting an appropriate primary programming language is a critical architectural decision, as the choice directly influences the availability of documentation, pre-built libraries, and the overall complexity of the implementation. A language with insufficient support for machine learning would necessitate the manual development of boilerplate code, increasing the risk of project delays. Conversely, a language with an excessively steep learning curve could impede the preliminary stages of development. Therefore, a balance between technical capability and development efficiency must be established.
+A critical limitation was identified during the evaluation of the Google Home ecosystem. Google has recently deprecated `conversational actions' in favour of `app actions', as documented in the Assistant Developer documentation\cite{google_sunset}. This shift implies that new Google Assistant developments must be tethered to a corresponding Android application. Given that this project is intended to function as a standalone voice service without a prerequisite mobile app, the sunsetting of conversational actions effectively precludes Google Home as a viable system. Therefore, the decision was made to proceed exclusively with the Amazon Alexa platform.
 
-Following a comparative evaluation of the supported environments for Alexa Skill development, Python was identified as the optimal language for this project. Python is widely regarded as the industry standard for machine learning and data science, offering an extensive ecosystem of libraries that abstract complex mathematical operations and reduce manual implementation. The language's syntax and conventions further contribute to code readability and long-term maintainability. The following libraries were identified as essential to the project's success:
+\section{Programming Language Selection}
+Selecting an appropriate primary programming language is a critical decision, as the choice directly influences the availability of documentation, pre-built libraries, and the overall complexity of the implementation. A language with insufficient support for machine learning would necessitate the manual development of boilerplate code, increasing the risk of project delays. Conversely, a language with an excessively steep learning curve could impede the preliminary stages of development. Therefore, a balance between technical capability and development efficiency must be established.
+
+Following a comparative evaluation of the supported environments for Alexa Skill development, Python was quickly identified as the optimal language for this project. Python is widely regarded as the industry standard for machine learning and data science, offering an extensive ecosystem of libraries that abstract complex mathematical operations and reduce manual implementation. The language's syntax and conventions further contribute to code readability and long-term maintainability. The following libraries were identified as essential to the project's success:
 
 \begin{itemize}
 \item \textbf{NumPy:} This library facilitates high-performance operations on multi-dimensional array objects. NumPy is reported to be significantly more efficient than standard Python lists, which is crucial when processing the large datasets typical of machine learning workflows. \cite{numpy_site}
@@ -38,13 +38,13 @@ Following a comparative evaluation of the supported environments for Alexa Skill
 
 \section{The Dataset}
 \label{sec:dataset}
-To develop a machine learning model with predictive power beyond stochastic chance, a robust set of features must be identified and obtained. Within the context of a Valorant match, data granularity ranges from high-level outcomes, such as the overall winner, to round-specific metrics, such as individual elimination counts. This spectrum of data allows for an iterative development approach: a model may be initialised using a small subset of primary features, with more complex, derived features integrated during later stages of implementation.
+To develop a machine learning model with predictive power beyond stochastic guesswork, a meaningful set of features must be identified and obtained. Within the context of a Valorant match, data granularity ranges from high-level outcomes, such as the overall winner, to round-specific metrics, such as individual elimination counts. This spectrum of data allows for an iterative development approach: a model may be initialised using a small subset of primary features, with more complex, derived features integrated during later stages of implementation.
 
 Two primary methods for acquiring a suitable dataset were evaluated: manual creation via web-scraping or the utilisation of a pre-existing dataset. The manual creation of a dataset would require the development of a bespoke web-scraper to request the HTML content of match results from historical VCT data since 2021. Extracting features from a repository such as VLR.gg \cite{vlr_gg} would involve querying the DOM using feature unique CSS selectors, such as \texttt{\#wf-title-med} for the team names. While this method offers maximum control over the data schema, the process of extraction, standardisation, and anomaly detection is substantially time-consuming.
 
-Conversely, the use of an existing dataset requires a rigorous assessment of feature richness and data integrity. It is essential to ensure that the dataset captures the underlying relationships between match variables and the final outcome without introducing multicollinearity---a state where redundant features communicate identical information. Furthermore, any external data must be used in strict accordance with the original author's licensing and copyright terms.
+Conversely, the use of an existing dataset requires an investigatory assessment of feature richness and data integrity. It is essential to ensure that the dataset captures the underlying relationships between match variables and the final outcome without introducing multicollinearity---a state where redundant features communicate identical information. Furthermore, any external data must be used in strict accordance with the original author's licensing and copyright terms.
 
-Given the significant time investment required for manual scraping, the acquisition of a comprehensive, pre-existing dataset was prioritised. A suitable dataset was identified and sourced from a repository on Kaggle \cite{ryanluong_dataset}. \autoref{tab:key-dataset-features} provides a data dictionary of the critical features extracted for this project.
+Given the significant time investment required for manual scraping, the acquisition of a comprehensive, pre-existing dataset was prioritised. A suitable dataset was identified and sourced from a repository on Kaggle \cite{ryanluong_dataset}. \autoref{tab:key-dataset-features} provides a data dictionary of the critical features extracted for this project. An exhaustive list of features provided with the dataset are listed in \autoref{tab:data-dictionary}.
 
 \subsection*{Dataset Features}
 Features within the dataset are categorised into two primary domains: player-level and team-level metrics. Player-level features, such as `Average Combat Score (ACS)', provide an indication of the individual technical proficiency of the team's constituents. Team-level features, such as `Attacker Score', offer high-level insights into team dynamics and situational performance. In the following table, features denoted with `X' represent data collected for both competing teams (Team A and Team B) respectively.
@@ -61,7 +61,7 @@ Features within the dataset are categorised into two primary domains: player-lev
         \addlinespace
         
         \midrule
-        Map & The specific geospatial environment in which the match was contested. & Facilitates the derivation of map-specific win rates and tactical biases. \\
+        Map & The specific in-game arena in which the match was contested. & Facilitates the derivation of map-specific win rates and tactical biases. \\
         \addlinespace
         
         \midrule
@@ -73,7 +73,7 @@ Features within the dataset are categorised into two primary domains: player-lev
         \addlinespace
         
         \midrule
-        KAST & Percentage of rounds featuring a Kill, Assist, Survival, or Trade. & Provides a robust metric for a player's overall contribution to team-oriented objectives. \\
+        KAST & Percentage of rounds featuring a Kill, Assist, Survival, or Trade. & Provides a metric for a player's overall contribution to team-oriented objectives. \\
         \addlinespace
         
         \midrule
@@ -81,7 +81,7 @@ Features within the dataset are categorised into two primary domains: player-lev
         \addlinespace
         
         \midrule
-        Avg. Combat Score & A weighted aggregate score based on damage, eliminations, and assists. & Functions as a high-fidelity proxy for individual mechanical and tactical performance. \\
+        Avg. Combat Score & A weighted aggregate score based on damage, eliminations, and assists. & Functions as a high-fidelity metric to explain individual mechanical and tactical performance. \\
         \addlinespace
         
         \midrule
@@ -93,7 +93,7 @@ Features within the dataset are categorised into two primary domains: player-lev
 \end{table}
 
 \section{Exploring Machine Learning Approaches}
-Machine learning (ML) is defined as a field of artificial intelligence concerned with the development of statistical algorithms capable of learning from data to generalise to unseen instances, thereby performing tasks without explicit instructions \cite{Koza1996}.
+Machine learning (ML) is defined as a ``field of artificial intelligence concerned with the development of statistical algorithms capable of learning from data to generalise to unseen instances, thereby performing tasks without explicit instructions'' \cite{Koza1996}.
 
 The ubiquity of ML is evident in modern digital infrastructure. For instance, platforms such as Facebook utilise ML to generate estimated action rates and ad quality scores within a total value equation to optimise user engagement \cite{Facebook2020}. With a monthly active user base exceeding three billion as of late 2025 \cite{NaveenKumar2025}, such systems represent a significant industrial application of predictive modelling. More pertinently to this research, the sports betting industry has shifted towards predictive ML models to generate odds and quantify the probability of specific match outcomes \cite{RhysGregory2025}. This industrial application directly mirrors the objectives of this project, albeit applied to the esports domain.
 
@@ -173,7 +173,7 @@ Finally, reinforcement learning (RL) is where an `agent' will, through trial and
     \label{tab:MLProsAndCons}
 \end{table}
 
-\noindent A comparative analysis of these machine learning paradigms reinforces the conclusion that supervised learning is the optimal approach for this project. This selection is dictated by the structure of the available VCT datasets, which consist of historical professional matches with definitive, labelled outcomes (a confirmed winner and loser).
+\noindent A comparative analysis of these machine learning paradigms reinforces the conclusion that supervised learning is the optimal approach for this project. This selection is dictated by the structure of the VCT dataset established in \autoref{sec:dataset}, which consists of historical professional matches with definitive, labelled outcomes (a confirmed winner and loser).
 
 Furthermore, the primary objective is to generate \textit{accurate predictions} of match results rather than to perform exploratory \textit{pattern discovery}, for which unsupervised learning would be better suited. The tabular nature of the match statistics does not readily lend itself to a state-action-reward environment required for reinforcement learning, and the abundance of labelled data precludes the necessity for semi-supervised techniques. Consequently, the following research focuses exclusively on supervised classification algorithms.
 
@@ -182,17 +182,17 @@ Furthermore, the primary objective is to generate \textit{accurate predictions} 
 \subsection{Related Work in Predictive Sports Analytics}
 The application of supervised learning to match outcome prediction is well-documented within traditional sports literature. A significant portion of existing research has focused on football; for instance, Igiri and Nwachukwu \cite{igiri2014improved} developed improved prediction systems by leveraging historical match results, while Owramipur et al. \cite{owramipur2013football} utilised Bayesian networks to predict outcomes in the Spanish League, highlighting the effectiveness of probabilistic modelling in competitive environments.
 
-Comparative studies have frequently been employed to identify the most robust algorithms for sporting data. Delen et al. \cite{delen2012comparative} conducted a comprehensive analysis of ML methods to predict NCAA bowl outcomes, concluding that ensemble-based approaches often outperform individual classifiers. This is further supported by Mustafa et al. \cite{mustafa2017predicting}, who compared various machine learning methods in the context of cricket, noting that the inclusion of diverse feature sets---including social sentiment and historical form---significantly enhances predictive accuracy.
+Comparative studies have frequently been employed to identify the most effective algorithms for sporting data. Delen et al. \cite{delen2012comparative} conducted a comprehensive analysis of ML methods to predict NCAA bowl outcomes, concluding that ensemble-based approaches often outperform individual classifiers. In addition, Mustafa et al. \cite{mustafa2017predicting} compared various machine learning methods in the context of cricket, noting that the inclusion of diverse feature sets---including social sentiment and historical form---significantly enhances predictive accuracy.
 
 Furthermore, the concept of ``one-match-ahead" forecasting, as explored by Lam \cite{lam2018one}, demonstrates the utility of Bayesian regressions in handling the sequential nature of two-team sports. While these studies primarily address traditional athletics, the underlying mathematical principles are directly transferable to the esports domain. Like football or cricket, Valorant matches are defined by two-team interactions, historical form, and situational variables (such as map choice), justifying the application of these established classification frameworks to the VCT dataset.
 
 \subsection{Supervised Learning Algorithms}
 \subsection*{Linear vs Non-Linear Prediction Boundaries}
-The following methods can be split into either linear, or non-linear, prediction boundaries. A linear boundary is a straight line---or flat hyperplane in higher dimensions---used to separate classes. A non-linear decision boundary is a curved line---or complex surface---used to handle more intricate data that cannot be separated as simply. See \ref{fig:linear-nonlinear}.
+The following methods can be split into either linear or non-linear prediction boundaries. A linear boundary is a straight line---or flat hyperplane in higher dimensions---used to separate classes. A non-linear decision boundary is a curved line---or complex surface---used to handle more intricate data that cannot be separated as simply. See \ref{fig:linear-nonlinear}.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\linewidth]{./images/lin-non-lin.png}
-    \caption{Example linear and non-linear decision boundaries on a two-dimensional graph. \cite{Duque2017}}
+    \caption{Example linear and non-linear decision boundaries on a two-dimensional graph.\cite{Duque2017}}
     \label{fig:linear-nonlinear}
 \end{figure}
 \subsection*{Linear Regression}
@@ -212,14 +212,14 @@ Logistic regression is a linear classifier model developed for binary classifica
 \end{equation*}
 Where $P$ represents the probability of a specific outcome occurring. Logistic regression is valued for its simplicity, ease of implementation, and high degree of interpretability, making it an ideal choice for establishing a performance baseline. However, the model assumes a linear relationship between the independent variables and the log-odds of the dependent variable. This assumption often renders it less effective for modelling complex, non-linear relationships found in high-dimensional real-world data \cite{osisanwo2017supervised}.
 
-Despite these theoretical limitations, logistic regression has demonstrated remarkably high accuracy in sporting contexts where feature sets are meticulously curated. For instance, Igiri and Nwachukwu \cite{igiri2014improved} achieved a predictive accuracy of 93.00\% in football match forecasting by applying logistic regression to a dataset of 9 key features. Conversely, in studies where more rigorous validation techniques were employed, the results were more conservative; Zaveri et al. \cite{zaveri2018prediction} utilised 10-fold cross-validation on a 12 feature dataset, resulting in a more modest accuracy of 71.63\%. These varied results suggest that while logistic regression is a powerful baseline tool, its performance is highly sensitive to both the quality of feature engineering and the specific validation methodology used.
+Despite these theoretical limitations, logistic regression has demonstrated remarkably high accuracy in sporting contexts where feature sets are meticulously curated. For instance, Igiri and Nwachukwu \cite{igiri2014improved} achieved a predictive accuracy of 93\% in football match forecasting by applying logistic regression to a dataset of 9 key features. Conversely, in studies where more rigorous validation techniques were employed, the results were more conservative; Zaveri et al. \cite{zaveri2018prediction} utilised 10-fold cross-validation on a 12 feature dataset, resulting in a more modest accuracy of 71.63\%. These varied results suggest that while logistic regression is a powerful baseline tool, its performance is highly sensitive to both the quality of feature engineering and the specific validation methodology used.
 
 \subsection*{K-Nearest Neighbours}
 K-Nearest Neighbours (KNN) is a non-parametric model utilised for both classification and \gls{regression} tasks. The algorithm operates by calculating the distance between a new query point and all existing points in the training dataset, identifying the $K$ nearest instances to formulate a prediction. In a classification context, the output is determined by a majority vote among these $K$ neighbours, whereas in regression, the mean value of the neighbours is typically calculated. The hyper-parameter $K$ is manually specified and must be optimised to balance predictive accuracy against computational latency.
 
-Unlike ``eager" learners that construct an internal model during a training phase, KNN is a ``lazy" learner that retains the entire dataset in memory. Consequently, the algorithm is computationally expensive and memory-intensive, as a full scan of the dataset is required for every prediction. Furthermore, KNN is highly susceptible to the ``curse of dimensionality.'' As the number of features increases, the volumetric space expands so rapidly that the available data points become sparse. This causes the distance between the nearest and furthest neighbours to converge, significantly degrading the model's ability to discern patterns \cite{osisanwo2017supervised}.
+Unlike ``eager'' learners that construct an internal model during a training phase, KNN is a ``lazy'' learner that retains the entire dataset in memory. Consequently, the algorithm is computationally expensive and memory-intensive, as a full scan of the dataset is required for every prediction. Furthermore, KNN is highly susceptible to the ``curse of dimensionality.'' As the number of features increases, the volumetric space expands so rapidly that the available data points become sparse. This causes the distance between the nearest and furthest neighbours to converge, significantly degrading the model's ability to discern patterns \cite{osisanwo2017supervised}.
 
-Horvat et al. \cite{horvat2018prediction} applied KNN to a basketball dataset containing 15 distinct features, achieving an accuracy of 83.96\%. Whilst this result is high, the extreme computational cost associated with processing the extensive feature sets typical of modern esports metrics could cause the Alexa skill to time-out on the user. Alexa skills have a default eight-second window to deliver a response, after which the intent is terminated. Since KNN models require distance calculations to be performed on all data points for each query, a complex model could exceed the time-out limit, resulting in a reduced user experience.
+Horvat et al. \cite{horvat2018prediction} applied KNN to a basketball dataset containing 15 distinct features, achieving an accuracy of 83.96\%. Whilst this result is high, the extreme computational cost associated with processing the extensive feature sets typical of modern esports metrics could cause the Alexa skill to time-out on the user. Alexa skills have a default eight-second window to deliver a response, after which the intent is terminated. Since KNN models require distance calculations to be performed on all data points for each query, a complex model could exceed the time-out limit, resulting in a more negative user experience.
 
 \begin{figure}[H]
     \centering
@@ -241,21 +241,21 @@ Support Vector Machines (SVM) function by identifying the optimal hyperplane tha
 
 SVMs are particularly versatile due to the use of kernel functions—such as Linear, Polynomial, or Radial Basis Function (RBF)—which project the input data into higher-dimensional spaces where classes that were originally non-linear can become linearly separable. While highly effective for high-dimensional datasets, SVMs can be computationally expensive and require meticulous tuning of hyper-parameters, specifically the regularisation parameter $C$ and the kernel coefficient $\gamma$ \cite{osisanwo2017supervised}.
 
-The efficacy of SVMs in sports analytics is demonstrated by Mustafa et al. \cite{mustafa2017predicting}, who utilised the algorithm to predict cricket match outcomes. By employing 10-fold cross-validation, the study achieved a predictive accuracy of 87.90\%, outperforming several other classifiers. The research highlighted that SVMs are particularly robust when dealing with the diverse, multidimensional feature sets—such as social sentiment and player form—that are characteristic of competitive sports. Similarly, Kravanja \cite{kravanja2013napovedovanje} applied SVMs to a smaller basketball dataset using 3-fold cross-validation, achieving an accuracy of 70.01\%.
+The efficacy of SVMs in sports analytics is demonstrated by Mustafa et al. \cite{mustafa2017predicting}, who utilised the algorithm to predict cricket match outcomes. By employing 10-fold cross-validation, the study achieved a predictive accuracy of 87.90\%, outperforming several other classifiers. The research highlighted that SVMs are particularly effective when dealing with the diverse, multidimensional feature sets—such as social sentiment and player form—that are characteristic of competitive sports. Similarly, Kravanja \cite{kravanja2013napovedovanje} applied SVMs to a smaller basketball dataset using 3-fold cross-validation, achieving an accuracy of 70.01\%.
 
 \subsection*{Random Forest}
 Random Forest is an ensemble learning method constructed from a multitude of decision trees, applicable to both classification and regression tasks. The algorithm operates by building numerous decision trees during the training phase; for classification, the final output is determined by a majority vote across all trees, whereas for regression, the average of the individual tree predictions is calculated.
 
-The primary advantage of the Random Forest architecture is its inherent resistance to overfitting, a common failure for individual decision trees. This is achieved through two layers of randomness. Each tree is trained on a bootstrap sample of the data (bagging), and a random subset of features is considered at each node split. This stochastic process ensures diversity among the constituent trees, leading to a more robust and generalised model. Furthermore, Random Forests provide inherent feature importance metrics, allowing for an empirical assessment of which match variables most significantly impact the final prediction \cite{osisanwo2017supervised}.
+The primary advantage of the Random Forest architecture is its inherent resistance to overfitting, a common failure for individual decision trees. This is achieved through two layers of randomness. Each tree is trained on a bootstrap sample of the data (bagging), and a random subset of features is considered at each node split. This stochastic process ensures diversity among the constituent trees, leading to a more generalised model. Furthermore, Random Forests provide inherent feature importance metrics, allowing for an empirical assessment of which match variables most significantly impact the final prediction \cite{osisanwo2017supervised}.
 
 In practical sports forecasting, Random Forests have demonstrated consistent reliability across diverse datasets. Knoll and St{\"u}binger \cite{knoll2020machine} attained a predictive accuracy of 75.62\% when applying the algorithm to football match outcomes, noting its ability to handle non-linear interactions without the extensive kernel tuning required by SVMs. Similarly, Lin et al. \cite{lin2014predicting} achieved an accuracy of 65.15\% on a dataset featuring 16 distinct variables pertaining to basketball.
 
 These results are particularly relevant to the Valorant Champions Tour (VCT) context, as the varied team compositions and map-specific anomalies in esports often introduce noise that would cause simpler models to overfit. However, the memory-intensive nature of storing a large forest of trees must be considered. As the number of trees increases to improve accuracy, the model's footprint expands, which may impact the loading times and execution efficiency of the Python backend within an AWS Lambda environment.
 
 \subsection*{Gradient Boosted Trees}
-Gradient Boosted Trees (GBT) represent an ensemble learning technique that constructs a predictive model through the sequential addition of decision trees. Unlike Random Forest, which builds trees in parallel (bagging), GBT employs a boosting strategy where each successive tree is specifically trained to reduce the residual errors of the preceding ensemble. This optimisation is achieved through gradient descent, allowing the model to minimise a loss function and capture intricate, non-linear patterns within the data.
+Gradient Boosted Trees (GBT) represent an ensemble learning technique that constructs a predictive model through the sequential addition of decision trees. Unlike Random Forest, which builds trees in parallel (bagging), GBT employs a boosting strategy where each successive tree is specifically trained to reduce the residual errors of the preceding one. This optimisation is achieved through gradient descent, allowing the model to minimise a loss function and capture intricate, non-linear patterns within the data.
 
-GBT architectures, such as XGBoost and LightGBM, are renowned for their high predictive accuracy and frequently outperform simpler linear or bag-based models on structured datasets. However, this increased performance necessitates rigorous hyper-parameter tuning; parameters such as the learning rate ($\eta$), tree depth, and the number of boosting iterations must be carefully balanced. Without proper regularisation, GBT models are highly susceptible to overfitting, particularly on datasets with a high degree of noise \cite{osisanwo2017supervised}.
+GBT architectures, such as XGBoost and LightGBM, are renowned for their high predictive accuracy and frequently outperform simpler linear or bag-based models on structured datasets. However, this increased performance comes at the cost of careful hyper-parameter tuning; parameters such as the learning rate ($\eta$), tree depth, and the number of boosting iterations must be carefully balanced, as without proper regularisation, GBT models are highly susceptible to overfitting, particularly on datasets with a high degree of noise \cite{osisanwo2017supervised}.
 
 \begin{figure}[H]
     \centering
@@ -265,9 +265,15 @@ GBT architectures, such as XGBoost and LightGBM, are renowned for their high pre
     \label{fig:GBT}
 \end{figure}
 
-The potential and challenges of boosting algorithms are well-documented in competitive sports research. Elfrink \cite{elfrink2018predicting} utilised the XGBoost implementation to achieve a predictive accuracy of 55.52\% on a highly volatile baseball dataset. While the raw accuracy appears lower than simpler models in other studies, it reflects the challenges of predicting outcomes in environments with high unpredictability. Additionally, Tax and Joustra \cite{tax2015predicting} achieved 56.10\% using the LogitBoost algorithm to predict dutch football results, noting that while boosting is computationally more intensive than Random Forest, it offers superior capability in modelling the complex, strategic shifts inherent in professional match-ups.
+Both the potential and challenges of boosting algorithms are well-documented in existing competitive sports research. Weeradanna \cite{weeraddana2021unique} utilised XGBoost to achieve an accuracy of 84.4\% when predicting the match outcomes on a cricket dataset of 26 features. Feature selection was carried out using the ANalysis Of VAriance (ANOVA) correlation coefficient to select the features that explain the most variance, resulting in a final set of eight features which explain around 80\% of the data's variance. Additionally, Ouyang et al. \cite{ouyang2024integration} analysed the comparative results of various models for NBA game outcome prediction, and concluded that XGBoost, closely followed by LightGBM, outperformed other mainstream machine learning algorithms, as seen in \autoref{fig:ouyang}, reflecting to some extent the superiority of ensemble algorithms. 
 
-For the Alexa skill, GBT—and specifically the LightGBM implementation—is identified as a good candidate for the final model. Given the eight-second latency limit of the Amazon Alexa platform, the leaf-wise growth strategy of LightGBM is particularly advantageous, as it typically offers faster training and inference speeds than traditional depth-wise GBT implementations. This ensures that the model can maintain high accuracy while remaining within the technical constraints of a real-time voice interface.
+For this project, gradient boosted trees---and specifically the LightGBM implementation---is identified as a good candidate for the final model. Given the eight-second latency limit of the Amazon Alexa platform, the leaf-wise growth strategy of LightGBM typically offers faster training and inference speeds than traditional depth-wise GBT implementations. This ensures that the model can maintain high accuracy while remaining within the technical constraints of the hosting platform.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{./images/xgboostTable.png}
+    \caption{Ouyang et al.\cite{ouyang2024integration} comparative results of performance evaluation metrics for NBA Game outcome prediction models.}
+    \label{fig:ouyang}
+\end{figure}
 
 \begin{table}
     \centering
@@ -280,35 +286,35 @@ For the Alexa skill, GBT—and specifically the LightGBM implementation—is ide
         \textbf{Logistic Regression} & 
         Probabilistic outputs; highly interpretable; computationally efficient. & 
         Assumes linear relationship; poor at capturing complex interactions. & 
-        \textbf{High (Baseline):} Ideal for establishing a performance floor. \\
+        High (Baseline): Ideal for establishing a performance floor. \\
         \addlinespace
         
         \midrule
         \textbf{K-Nearest Neighbours} & 
         Simple logic; no formal training phase required. & 
         Memory-intensive; suffers from the `curse of dimensionality'. & 
-        \textbf{Low:} High feature count in VCT data makes distance-based metrics unreliable. \\
+        Low: High feature count in VCT data makes distance-based metrics unreliable. \\
         \addlinespace
         
         \midrule
         \textbf{Support Vector Machines} & 
         Effective in high-dimensional spaces; handles non-linear data via kernels. & 
         Computationally expensive for large datasets; sensitive to hyper-parameters. & 
-        \textbf{Moderate:} Potentially accurate, but complexity of kernel tuning outweighs benefits for this data. \\
+        Moderate: Potentially accurate, but complexity of kernel tuning outweighs benefits for this data. \\
         \addlinespace
         
         \midrule
         \textbf{Random Forest} & 
         Reduces overfitting; handles mixed data types; provides feature importance. & 
         Can be memory-intensive; slower prediction speeds as tree count increases. & 
-        \textbf{High:} Robust to the varied team compositions and map-specific anomalies. \\
+        High: Resilient to the varied team compositions and map-specific anomalies. \\
         \addlinespace
         
         \midrule
         \textbf{Gradient Boosted Trees} & 
-        State-of-the-art accuracy; captures intricate non-linear patterns. & 
+        Potential for superior accuracy; captures intricate non-linear patterns. & 
         Prone to overfitting if not regularised; sensitive to learning rate tuning. & 
-        \textbf{Optimal:} Capable of modelling complex strategic shifts and round-by-round momentum. \\
+        High: Capable of modelling complex strategic shifts and round-by-round momentum. \\
         \bottomrule
     \end{tabularx}
     \caption{Comparative Analysis of Machine Learning Models and their Applicability to VCT Match Prediction.}
@@ -316,4 +322,4 @@ For the Alexa skill, GBT—and specifically the LightGBM implementation—is ide
 \end{table}
 
 \subsection*{Conclusion}
-By comparing the strengths of these paradigms as shown in \autoref{tab:MLModelProsCons} with the specific requirements of VCT match data, the selection of Logistic Regression and Gradient Boosted Trees is justified. Unlike KNN or SVM, which struggle with the high-dimensional and categorical nature of Valorant match statistics like map names and agent roles, ensemble tree-based methods are robust to outliers and can model the complex, non-linear interactions between player performance and match outcome. The following chapters will detail the requirements for this project, as well as the design and implementation of these models using the sourced VCT dataset.
+By comparing the strengths of these paradigms, as shown in \autoref{tab:MLModelProsCons}, with the specific requirements of VCT match data, the selection of Logistic Regression and Gradient Boosted Trees is justified. Unlike KNN or SVM, which struggle with the high-dimensional and categorical nature of Valorant match statistics like map names and agent roles, ensemble tree-based methods are effective even in the presence of outliers, and can model the complex, non-linear interactions between player performance and match outcome. The following chapters will detail the requirements for this project, as well as the design and implementation of these models using the sourced VCT dataset.
