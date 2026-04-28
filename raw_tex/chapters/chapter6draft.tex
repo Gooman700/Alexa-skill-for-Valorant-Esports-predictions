@@ -1,0 +1,125 @@
+\chapter{Implementation and testing}
+This chapter talks about the implementation of each aspect of the system, going over any design changes and the justifications for them, and the limitations that necessitated them. Finally, the testing of the system is discussed. The system was built using Python 3.14 and uses numpy, scikitlearn, pandas, m2cgen.
+
+\section{Dataset Manipulation}
+\subsection{Updating the Dataset}
+TODO: reword and maybe talk about the other ones missing at the bottom
+2025 data was added to the master ID tables as it was missing before. Firstly, players and their IDs from the year 2025 were added to the master player IDs table regardless of whether they were in it already, and then any duplicate instances were dropped. The resulting data was then cast into an Int64, allowing for null values unlike int64.
+\begin{lstlisting}[style=code]
+import pandas as pd
+from pathlib import Path
+
+path = Path(__file__).parent.parent / "dataset"
+path_2025 = path / "vct_2025" / "ids"
+new_path = path.parent / "new_data"
+
+# BLOCK Of CODE FOR UPDATING THE all_players_ids.csv
+all_players_ids = pd.read_csv(path / "all_ids" / "all_players_ids.csv")
+new_player_ids = pd.read_csv(path_2025 / "players_ids.csv")
+
+combined_player_ids = pd.concat([all_players_ids, new_player_ids]).drop_duplicates()
+combined_player_ids["Player ID"] = combined_player_ids["Player ID"].astype("Int64")
+
+combined_player_ids.to_csv(new_path / "combined_player_ids.csv", index=False)
+\end{lstlisting}
+
+Similarly, teams and their IDs from 2025 were also added to the master table. This logic utilises a bitwise OR (|) combined with an inverted duplication check (\textasciitilde), effectively de-duplicating the dataset while explicitly whitelisting the `Exotic' team to ensure its records are retained across all instances.
+
+\begin{lstlisting}[style=code]
+# BLOCK OF CODE FOR UPDATING THE all_teams_ids.csv
+all_teams_ids = pd.read_csv(path / "all_ids" / "all_teams_ids.csv")
+new_teams_ids = pd.read_csv(path_2025 / "teams_ids.csv")
+
+combined_team_ids = pd.concat([all_teams_ids, new_teams_ids]).drop_duplicates()
+combined_team_ids["Team ID"] = combined_team_ids["Team ID"].astype("Int64")
+
+combined_team_ids = combined_team_ids[
+    (combined_team_ids["Team"] == "Exotic") | 
+    ~combined_team_ids.duplicated(subset=["Team"], keep="first")
+]
+
+combined_team_ids.to_csv(new_path / "combined_team_ids.csv", index=False)
+\end{lstlisting}
+
+The tables for the team mappings of name to ID, the IDs of tournament stages match types, and finally all match IDs were also updated to reflect the up-to-date status inclusive of the 2025 data. The implementations were logically the same as the previous snippets.
+
+\subsection{Merge IDs}
+- base for the dataset is the map\_scores.csv file
+- selected because it provides a granular, row-per-match structure containing critical performance indicators such as Team A Score, Team B Score, and specific round-side performance (Attacker/Defender/Overtime). 
+- each annual map\_scores, overview, and eco file was appended to 3 master tables.
+- the match ids were merged into the all matches table by adding the map rank cumcount
+- team ids were also merged for team a and team b
+- the overview table gives the player specific stats like average combat score and KAST
+- eco table gives round details such as how many pistol rounds each team won, or how many eco rounds each team won 
+- match id and team id were merged into the overview and eco tables
+- now the tables are complete and the raw info is ready to be aggregated into more complex features
+
+\subsection{Feature Derivation}
+mention about the up-to-date rolling averages stored too
+- the all matches, overview, and eco tables are passed as params to a function calculate all features
+- `team a won' feature created as a binary
+- 4 functions for calculating each feature type - h2h, team form, player, eco
+- h2h func creates a new feature `Pair' made up of the sorted join of the two team ids which is a key for each team combination
+- new feature L won which is a binary flag of whether the left team of the join won
+- h2h base feature created, and since there aren't many results for h2h, expanding window is used, with the mean value of L won used as the result for h2h base
+- the result is mapped to team a's perspective by negating it from 1 if L is team B
+- finally, it is turned into a differential feature by multiplying it by 2 and then negating 1, making it between -1 and 1
+- calculate team form metric calculates Calculates Win\%, Map Win\%, RD, and Attacker/Defender Side Biases
+- two tables made, one for team 1 one for team 2
+- history table created as the concacontated t1 and t2
+- RD feature made
+- get rolling function defined to calculate the exponential weighted moving average
+- features calculated from this:
+    % hist['Roll_Form'] = get_rolling(hist, 'Team ID', 'Won')
+    % hist['Roll_Map'] = get_rolling(hist, ['Team ID', 'Map'], 'Won')
+    % hist['Roll_RD'] = get_rolling(hist, 'Team ID', 'RD')
+    % hist['Roll_Atk_Map'] = get_rolling(hist, ['Team ID', 'Map'], 'Atk_W')
+    % hist['Roll_Def_Map'] = get_rolling(hist, ['Team ID', 'Map'], 'Def_W')
+- features merged into the main table record for each game, renamed depending on team A or b
+- diffs calculated
+    % matches['Form_Win_Rate_Diff'] = matches['TA_W'] - matches['TB_W']
+    % matches['Map_Win_Rate_Diff'] = matches['TA_M'] - matches['TB_M']
+    % matches['Round_Diff'] = matches['TA_RD'] - matches['TB_RD']
+    % matches['Map_Atk_Diff'] = matches['TA_Atk_M'] - matches['TB_Atk_M']
+    % matches['Map_Def_Diff'] = matches['TA_Def_M'] - matches['TB_Def_M']
+- calculate player aggregates
+- calculate eco metrics
+- drop all columns but features and target
+- save as csv
+
+\section{Logistic Regression Model}
+
+\section{Interaction Model}
+The skill, invoked by the name `valorant predictor', is built upon a structured interaction model designed to facilitate accurate entity resolution and conversational flow.
+
+\subsection{Custom Slot Type: team}
+To ensure robust identification of competitive organisations, a custom slot type named \texttt{team} was implemented. This slot type acts as an enumerated list of value-ID pairs, mapping every professional team within the dataset to a unique canonical identifier. This identifier is essential for the backend, as it ensures that regardless of the linguistic variations in the user's speech, the system receives a consistent key for database queries.
+
+The values were populated programmatically using the Python script below, ensuring that the model remains synchronised with the underlying dataset. By defining a comprehensive set of synonyms—covering common mispronunciations and alternative spellings—the model significantly increases the likelihood of successful entity resolution.
+
+\subsection{Required and Built-In Intents}
+Required:
+AMAZON.CancelIntent
+AMAZON.HelpIntent
+AMAZON.StopIntent
+AMAZON.NavigateHomeIntent
+
+Built-In:
+AMAZON.FallbackIntent
+AMAZON.YesIntent
+AMAZON.NoIntent
+
+\subsection{Prediction Intent and Slot Delegation}
+The core functionality is encapsulated within the \texttt{PredictMatchIntent}, which is supported by a diverse array of sample utterances (detailed in \autoref{tab:utterances}). Within these utterances, two mandatory slots, \texttt{team\_a} and \texttt{team\_b}, are defined using the \texttt{team} slot type.
+
+To maintain strict control over the dialogue, these slots were configured as required fields. While the Alexa Skills Kit supports automatic dialogue delegation to manage slot filling, this project employs a manual delegation strategy. As justified in \autoref{chap:design}, this approach was chosen to circumvent the limitations of automated flows, allowing the backend logic to perform real-time validation of slot values. By intercepting the request-response cycle, the system can ensure that team names are not only recognised but are also validated against the current feature store, providing a seamless user experience that prevents invalid queries from progressing to the \gls{ml} inference stage.
+
+\section{Lambda Function}
+\subsection{Developer Console and VS Code}
+\subsection{Intent Handler Creation}
+\subsection{Slot Validation}
+
+\section{Gradient-Boosted Tree Model}
+\subsection{XGBoost}
+\subsection{LightGBM}
+\subsection{Feature Analysis}

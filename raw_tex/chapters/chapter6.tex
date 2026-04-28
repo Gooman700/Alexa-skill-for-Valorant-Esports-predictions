@@ -1,22 +1,113 @@
 \chapter{Implementation and testing}
+This chapter details the implementation of the system, documenting the rationale behind design deviations and the technical constraints that necessitated them. Furthermore, it outlines the testing procedures employed to validate system performance. The implementation was developed using Python 3.14, leveraging a stack of libraries including \texttt{NumPy}, \texttt{scikit-learn}, \texttt{pandas}, and \texttt{m2cgen}.
+
 \section{Dataset Manipulation}
-\subsection{Cleaning the Dataset}
-% Separately to the implementation of the Alexa skill, a functioning machine learning model was to be created first. Once a suitable model had been created, it could then be used in the building of the Alexa skill to provide results. The dataset was split into folders for each year's worth of data, as well as one extra folder containing the aggregated IDs from all of the tournaments, matches, teams, and players introduced in each year. One table held the IDs for both tournaments and matches, another held team names and the respective IDs, and another held the player names and their IDs. Effectively, these tables mapped each entity's name to a unique integer ID. This master table was of interest to me, as these IDs would be needed to uniquely identify each entity---names alone would not be enough due to possible same named teams or players. However, upon closer inspection of the all IDs tables, it became apparent that the data for the 2025 year, although present in its respective folder, was not a part of the master IDs table. After this realisation, work began on appending any new IDs from the missed year to the all IDs table.
+\subsection{Updating the Dataset}
+Upon inspection of the \texttt{combined_matches_games_ids} table discussed in \autoref{chap:req_analysis}, it became apparent that during the addition of 2025 VCT statistics folder by the author, the \texttt{all_ids} folder had failed to be updated to reflect any new data. Thus to maintain relational integrity, 2025 data was added to the master ID tables. Firstly, new player records and their associated identifiers were extracted from the 2025 dataset and appended to the master player IDs table. To ensure uniqueness, this operation was followed by a de-duplication step, which identified and removed redundant entries while preserving new additions from 2025.
+\begin{lstlisting}[style=code]
+path = Path(__file__).parent.parent / "dataset"
+path_2025 = path / "vct_2025" / "ids"
+new_path = path.parent / "new_data"
 
-% Firstly, the \texttt{all\_player\_ids.csv} table and the 2025 specific \texttt{players\_ids.csv} table were read to pandas DataFrame objects. They were then concatenated, and a pandas function was used to remove any duplicate entries. This had the effect of adding all of the players that took part in 2025---existing and new---to the master list of players, followed by dropping any that were not new as part of 2025. With this, any player IDs that were not in the master table before, were now. A similar approach was taken to update the \texttt{all\_teams\_ids.csv} and 
+# BLOCK Of CODE FOR UPDATING THE all_players_ids.csv
+all_players_ids = pd.read_csv(path / "all_ids" / "all_players_ids.csv")
+new_player_ids = pd.read_csv(path_2025 / "players_ids.csv")
 
-% Upon inspection, the master table of IDs had not been updated to include any IDs denoting new entities introduced in 2025.
+combined_player_ids = pd.concat([all_players_ids, new_player_ids]).drop_duplicates()
+combined_player_ids.to_csv(new_path / "combined_player_ids.csv", index=False)
+\end{lstlisting}
 
-\subsection{Table Aggregation}
+\noindent
+Following the update to the player table, an identical approach was applied to the remaining ID-bearing tables. Most importantly, the IDs for teams, matches, and games were each subjected to the same process. By executing the equivalent concatenation and de-duplication operations across these tables, the system was updated to ensure that all relational mapping files were synchronised with the 2025 dataset. The complete code listing for this process is displayed in \autoref{lst:updateDataset}.
+
+\subsection{Merge IDs}
+The primary base for the dataset is the map\_scores.csv file, selected because it provides a granular, row-per-match structure containing critical performance indicators such as Team A Score, Team B Score, and specific round-side performance (Attacker/Defender/Overtime). To create a longitudinal dataset, each annual map\_scores file was appended to an all\_matches master table.
+
+\begin{lstlisting}[style=code]
+all_maps: list[pd.DataFrame] = []
+all_overview: list[pd.DataFrame] = []
+all_eco: list[pd.DataFrame] = []
+for year in [2021, 2022, 2023, 2024, 2025]:
+    matches = pd.read_csv(dataset / f'vct_{year}' / 'matches' / 'maps_scores.csv')
+    matches["Year"] = year
+    all_maps.append(matches)
+
+    overview = pd.read_csv(dataset / f'vct_{year}' / 'matches' / 'overview.csv', low_memory=False)
+    overview["Year"] = year
+    all_overview.append(overview)
+
+    eco = pd.read_csv(dataset / f'vct_{year}' / 'matches' / 'eco_stats.csv')
+    eco["Year"] = year
+    all_eco.append(eco)
+all_matches: pd.DataFrame = pd.concat(all_maps, ignore_index=True)
+df_overview = pd.concat(all_overview, ignore_index=True)
+df_eco = pd.concat(all_eco, ignore_index=True)
+\end{lstlisting}
+
+\noindent
+To enrich this data with unique identifiers, the combined\_matches\_games\_ids.csv was utilised as a secondary source. However, merging these files posed a challenge: the combination of Tournament, Stage, Match Type, Match Name, and Map was not strictly unique in scenarios where the same map was played multiple times within a single series. To resolve this, a Map\_Rank column was introduced. By applying a cumcount() function grouped by the aforementioned fields, the system assigned a sequential rank to each occurrence, creating a unique composite key for merging:
+
+\begin{lstlisting}[style=code]
+# Unique identifier for matches played on the same map
+all_matches['Map_Rank'] = all_matches.groupby(merge_keys).cumcount()
+match_ids['Map_Rank'] = match_ids.groupby(merge_keys).cumcount()
+
+all_matches = all_matches.merge(
+    match_ids[merge_keys + ['Map_Rank', 'Game ID']], 
+    how="left"
+)
+
+all_matches = all_matches.drop(columns=['Map_Rank'])
+\end{lstlisting}
+
+With the matches identified, the pipeline integrates team identifiers to facilitate the rolling statistics calculations described in \autoref{sub:featureStorage}. Using combined\_team\_ids.csv, the pipeline maps human-readable team names to standardised database IDs. This involves a two-stage join to attribute distinct IDs to both Team A and Team B, followed by a cast to the Int64 nullable integer type to ensure data consistency:
+
+\begin{lstlisting}[style=code]
+# Merge the Team IDs into the table
+team_ids = pd.read_csv(dataset / "all_ids" / "combined_team_ids.csv")
+
+# Merge for Team A
+all_matches = all_matches.merge(team_ids, how='left', left_on="Team A", right_on="Team")
+all_matches = all_matches.rename(columns={"Team ID": "Team A ID"}).drop(columns=['Team'])
+
+# Merge for Team B
+all_matches = all_matches.merge(team_ids, how='left', left_on="Team B", right_on="Team")
+all_matches = all_matches.rename(columns={"Team ID": "Team B ID"}).drop(columns=['Team'])
+
+all_matches = all_matches.astype({col: 'Int64' for col in all_matches.select_dtypes('float64').columns})
+\end{lstlisting}
+
+This normalisation step is vital; by transforming float-based scores—which often arise from missing value handling—into consistent nullable integer types, the pipeline prevents downstream calculation errors during the derivation of the Roll\_Form and Roll\_RD features.
+
 \subsection{Feature Derivation}
 mention about the up-to-date rolling averages stored too
 
 \section{Logistic Regression Model}
 
 \section{Interaction Model}
-\subsection{Intents}
-\subsection{Slots}
-\subsection{Utterances}
+The skill, invoked by the name `valorant predictor', is built upon a structured interaction model designed to facilitate accurate entity resolution and conversational flow.
+
+\subsection{Custom Slot Type: team}
+To ensure robust identification of competitive organisations, a custom slot type named \texttt{team} was implemented. This slot type acts as an enumerated list of value-ID pairs, mapping every professional team within the dataset to a unique canonical identifier. This identifier is essential for the backend, as it ensures that regardless of the linguistic variations in the user's speech, the system receives a consistent key for database queries.
+
+The values were populated programmatically using the Python script below, ensuring that the model remains synchronised with the underlying dataset. By defining a comprehensive set of synonyms—covering common mispronunciations and alternative spellings—the model significantly increases the likelihood of successful entity resolution.
+
+\subsection{Required and Built-In Intents}
+Required:
+AMAZON.CancelIntent
+AMAZON.HelpIntent
+AMAZON.StopIntent
+AMAZON.NavigateHomeIntent
+
+Built-In:
+AMAZON.FallbackIntent
+AMAZON.YesIntent
+AMAZON.NoIntent
+
+\subsection{Prediction Intent and Slot Delegation}
+The core functionality is encapsulated within the \texttt{PredictMatchIntent}, which is supported by a diverse array of sample utterances (detailed in \autoref{tab:utterances}). Within these utterances, two mandatory slots, \texttt{team\_a} and \texttt{team\_b}, are defined using the \texttt{team} slot type.
+
+To maintain strict control over the dialogue, these slots were configured as required fields. While the Alexa Skills Kit supports automatic dialogue delegation to manage slot filling, this project employs a manual delegation strategy. As justified in \autoref{chap:design}, this approach was chosen to circumvent the limitations of automated flows, allowing the backend logic to perform real-time validation of slot values. By intercepting the request-response cycle, the system can ensure that team names are not only recognised but are also validated against the current feature store, providing a seamless user experience that prevents invalid queries from progressing to the \gls{ml} inference stage.
 
 \section{Lambda Function}
 \subsection{Developer Console and VS Code}
@@ -27,3 +118,75 @@ mention about the up-to-date rolling averages stored too
 \subsection{XGBoost}
 \subsection{LightGBM}
 \subsection{Feature Analysis}
+
+\section{Data Transformation and Feature Engineering}
+To ensure the machine learning model is trained on high-quality, longitudinal data, the raw datasets spanning five years of VCT competition undergo a systematic transformation and aggregation pipeline. This process is divided into two phases: the consolidation of disparate data sources and the derivation of predictive features.
+
+\subsection{Data Consolidation and ID Integration}
+The foundation of the dataset is the \texttt{map\_scores.csv} file, selected for its granular, row-per-match structure that captures essential performance metrics, including final scores and side-specific performance. Separate annual records for match scores, match overviews, and economic statistics were consolidated by iterating through the directory structure:
+
+\begin{lstlisting}[style=code, caption={Consolidating annual match data across five years of VCT competition}]
+for year in [2021, 2022, 2023, 2024, 2025]:
+    matches = pd.read_csv(dataset / f'vct_{year}' / 'matches' / 'maps_scores.csv')
+    matches["Year"] = year
+    all_maps.append(matches)
+    # ... (similar logic for overview and eco tables)
+
+all_matches: pd.DataFrame = pd.concat(all_maps, ignore_index=True)
+\end{lstlisting}
+
+\noindent
+To enable relational integrity across these disparate sources, a unique identifier merge was performed. As identical maps may occur multiple times within a single series, a \texttt{Map_Rank} column was generated via \texttt{groupby().cumcount()} to serve as an additional discriminator. Each table was cross-referenced using a unique composite key consisting of \texttt{Tournament}, \texttt{Stage}, \texttt{Match Type}, \texttt{Match Name}, \texttt{Map}, \texttt{Year}, and \texttt{Map_Rank}:
+
+\begin{lstlisting}[style=code]
+# Create unique identifier for matches played on the same map
+match_ids = pd.read_csv(dataset / "all_ids" / "combined_matches_games_ids.csv")
+merge_keys = ['Tournament', 'Stage', 'Match Type', 'Match Name', 'Map', 'Year']
+
+all_matches['Map_Rank'] = all_matches.groupby(merge_keys).cumcount()
+match_ids['Map_Rank'] = match_ids.groupby(merge_keys).cumcount()
+
+# Merge based on composite key and rank
+all_matches = all_matches.merge(
+    match_ids[merge_keys + ['Map_Rank', 'Game ID']], how="left"
+)
+all_matches = all_matches.drop(columns=['Map_Rank'])
+\end{lstlisting}
+
+\noindent
+Subsequently, team-specific IDs were merged into these datasets, mapping human-readable names to standardised \texttt{Team ID}s via a lookup dictionary. This consolidation ensures that all raw performance information is unified, creating a consistent structure ready for the feature derivation pipeline.
+
+\subsection{Feature Derivation Pipeline}
+Once the datasets were unified, the \texttt{calculate_all_features} method was executed to transform raw statistics into a high-utility input vector. This process is orchestrated through four primary methods:
+
+\begin{enumerate}
+\item \textbf{calculate_h2h_diff:} This method calculates the historical advantage one team holds over another. By creating a unique \texttt{Pair} key (an alphabetical sort of the two participating \texttt{Team ID}s), the system tracks the win-rate of the lexicographically `lower' team. An expanding window mean is employed to capture all-time rivalry trends, which is then re-mapped to \texttt{Team A}'s perspective and normalised to a range of -1 to 1:
+\begin{lstlisting}[style=code]
+# Create a unique key for the two teams (alphabetical)
+matches['Pair'] = matches.apply(lambda x: "_".join(sorted([str(x['Team A ID']), str(x['Team B ID'])])), axis=1)
+
+# Consistent winner tracking
+matches['L_Won'] = matches.apply(
+    lambda x: x['Team A Won'] if str(x['Team A ID']) < str(x['Team B ID']) else (1 - x['Team A Won']), axis=1
+)
+
+# Expanding mean (all time history)
+matches['H2H_Base'] = matches.groupby('Pair')['L_Won'].transform(lambda x: x.shift(1).expanding().mean())
+
+# Map to Team A perspective
+matches['Team_A_H2H'] = matches.apply(
+    lambda x: x['H2H_Base'] if str(x['Team A ID']) < str(x['Team B ID']) else (1 - x['H2H_Base']), axis=1
+)
+
+# Transform into -1 to 1
+matches['H2H_Win_Diff'] = (2 * matches['Team_A_H2H'].fillna(0.5)) - 1
+\end{lstlisting}
+
+\item \textbf{calculate_team_form_metrics:} This method computes performance indicators, including overall win rates, map-specific win rates, round differentials, and side-specific biases. By creating a unified \texttt{hist} table concatenating both teams' performances, the system calculates Exponentially Weighted Moving Averages (EWMA) over a span of 15  by use of the \texttt{get_rolling} function. This approach prioritises recent trends while smoothing out stochastic anomalies. A listing for this function can be found at \autoref{lst:team_form_metrics}
+
+\item \textbf{calculate_player_aggregates:} Performance metrics such as Average Combat Score (ACS), KAST, and first-blood differentials are aggregated by \texttt{Team ID} per match. EWM averages are then applied to these aggregates to reflect the team's recent form.
+
+\item \textbf{calculate_eco_metrics:} This method pivots the raw economic data to extract pistol round success and eco-conversion rates. These metrics are passed to \texttt{get_rolling} to provide a gauge of the team's economic stability and efficiency in low-buy scenarios.
+\end{enumerate}
+
+Following these calculations, the system generates differential features for every metric (e.g., \texttt{Form_Win_Rate_Diff} = \texttt{TA_W} - \texttt{TB_W}). These relative metrics are theoretically more predictive than isolated values, as they quantify the competitive gap between opponents. The pipeline concludes by dropping redundant raw data and non-essential columns, resulting in a clean, feature-rich dataset saved as \texttt{win_percentages.csv}. This finalised file serves as the definitive training corpus for the predictive models described in the following section.

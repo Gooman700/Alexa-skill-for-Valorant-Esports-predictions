@@ -40,3 +40,121 @@
     \caption{The storyboard for the scenario where the user requests the outcome history of a team, with a window size that exceeds the stored data for that team. The skill informs the user that it does not have stats concerning the requested history, and to ask about a more recent time-frame.}
     \label{fig:no_history}
 \end{figure}
+
+\chapter{Code Listings}
+
+\begin{lstlisting}[style=code,caption={Function for updating the dataset to include 2025 statistics.},label={lst:updateDataset}]
+import pandas as pd
+from pathlib import Path
+
+path = Path(__file__).parent.parent / "dataset"
+path_2025 = path / "vct_2025" / "ids"
+new_path = path.parent / "new_data"
+
+# BLOCK Of CODE FOR UPDATING THE all_players_ids.csv
+all_players_ids = pd.read_csv(path / "all_ids" / "all_players_ids.csv")
+new_player_ids = pd.read_csv(path_2025 / "players_ids.csv")
+
+combined_player_ids = pd.concat([all_players_ids, new_player_ids]).drop_duplicates()
+combined_player_ids["Player ID"] = combined_player_ids["Player ID"].astype("Int64")
+
+combined_player_ids.to_csv(new_path / "combined_player_ids.csv", index=False)
+
+
+# BLOCK OF CODE FOR UPDATING THE all_teams_ids.csv
+all_teams_ids = pd.read_csv(path / "all_ids" / "all_teams_ids.csv")
+new_teams_ids = pd.read_csv(path_2025 / "teams_ids.csv")
+
+combined_team_ids = pd.concat([all_teams_ids, new_teams_ids]).drop_duplicates()
+combined_team_ids["Team ID"] = combined_team_ids["Team ID"].astype("Int64")
+
+combined_team_ids = combined_team_ids[
+    (combined_team_ids["Team"] == "Exotic") | 
+    ~combined_team_ids.duplicated(subset=["Team"], keep="first")
+]
+
+combined_team_ids.to_csv(new_path / "combined_team_ids.csv", index=False)
+
+
+# BLOCK OF CODE FOR UPDATING THE all_teams_mapping.csv
+all_teams_mappings = pd.read_csv(path / "all_ids" / "all_teams_mapping.csv")
+new_team_mappings = pd.read_csv(path_2025.parent / "matches" / "team_mapping.csv")
+
+combined_team_ids = pd.concat([all_teams_mappings, new_team_mappings]).drop_duplicates()
+
+combined_team_ids.to_csv(new_path / "combined_team_mappings.csv", index=False)
+
+
+# BLOCK Of CODE FOR UPDATING THE all_tournaments_stages_match_types_ids.csv
+all_tournaments_stages_match_types_ids = pd.read_csv(path / "all_ids" / "all_tournaments_stages_match_types_ids.csv")
+new_tournaments_stages_match_types_ids = pd.read_csv(path_2025 / "tournaments_stages_match_types_ids.csv")
+new_tournaments_stages_match_types_ids["Year"] = 2025
+
+combined_tournaments_stages_match_types_ids = pd.concat([all_tournaments_stages_match_types_ids, new_tournaments_stages_match_types_ids]).drop_duplicates()
+combined_tournaments_stages_match_types_ids[["Tournament ID", "Stage ID", "Match Type ID", "Year"]] = combined_tournaments_stages_match_types_ids[["Tournament ID", "Stage ID", "Match Type ID", "Year"]].astype("Int64")
+
+combined_tournaments_stages_match_types_ids.to_csv(new_path / "combined_tournaments_stages_match_types_ids.csv", index=False)
+
+
+# BLOCK Of CODE FOR UPDATING THE all_matches_games_ids.csv
+all_matches_games_ids = pd.read_csv(path / "all_ids" / "all_matches_games_ids.csv")
+new_matches_games_ids = pd.read_csv(path_2025 / "tournaments_stages_matches_games_ids.csv")
+combined_tournaments_stages_match_types_ids = pd.read_csv(new_path / "combined_tournaments_stages_match_types_ids.csv")
+
+new_matches_games_ids["Year"] = 2025
+new_matches_games_ids = new_matches_games_ids.merge(
+    combined_tournaments_stages_match_types_ids[['Tournament ID', 'Stage ID', 'Match Type', 'Match Type ID', 'Year']], 
+    on=['Tournament ID', 'Stage ID', 'Match Type', 'Year'], 
+    how='left'
+)
+
+combined_matches_games_ids = pd.concat([all_matches_games_ids, new_matches_games_ids]).drop_duplicates()
+combined_matches_games_ids[["Tournament ID", "Stage ID", "Match Type ID", "Match ID", "Game ID", "Year"]] = combined_matches_games_ids[["Tournament ID", "Stage ID", "Match Type ID", "Match ID", "Game ID", "Year"]].astype("Int64")
+
+combined_matches_games_ids.to_csv(new_path / "combined_matches_games_ids.csv", index=False)
+\end{lstlisting}
+
+\begin{lstlisting}[style=code,caption={Function for calculating team form metrics},label={lst:team_form_metrics}]
+def calculate_team_form_metrics(matches: pd.DataFrame):
+    """Calculates Win%, Map Win%, RD, and Attacker/Defender Side Biases"""
+    cols = ['Game ID', 'Year', 'Map', 'Team A ID', 'Team B ID', 'Team A Score', 'Team B Score', 'Team A Won',
+            'Team A Attacker Score', 'Team A Defender Score', 'Team B Attacker Score', 'Team B Defender Score']
+    
+    # Ensure scores are numeric to avoid merge issues
+    for col in ['Team A Attacker Score', 'Team A Defender Score', 'Team B Attacker Score', 'Team B Defender Score']:
+        matches[col] = pd.to_numeric(matches[col], errors='coerce').fillna(0)
+
+    t1 = matches[cols].rename(columns={'Team A ID': 'Team ID', 'Team A Won': 'Won', 'Team A Score': 'RW', 'Team B Score': 'RL',
+                                       'Team A Attacker Score': 'Atk_W', 'Team A Defender Score': 'Def_W'})
+    t2 = matches[cols].rename(columns={'Team B ID': 'Team ID', 'Team A Won': 'Won', 'Team B Score': 'RW', 'Team A Score': 'RL',
+                                       'Team B Attacker Score': 'Atk_W', 'Team B Defender Score': 'Def_W'})
+    t2['Won'] = 1 - t2['Won']
+    
+    hist = pd.concat([t1, t2]).sort_values(['Year', 'Game ID'])
+    hist['RD'] = hist['RW'] - hist['RL']
+    
+    def get_rolling(df: pd.DataFrame, group_cols, target_col, span=15):
+        return df.groupby(group_cols)[target_col].transform(lambda x: x.shift(1).ewm(span=span, adjust=False).mean())
+
+    hist['Roll_Form'] = get_rolling(hist, 'Team ID', 'Won')
+    hist['Roll_Map'] = get_rolling(hist, ['Team ID', 'Map'], 'Won')
+    hist['Roll_RD'] = get_rolling(hist, 'Team ID', 'RD')
+    hist['Roll_Atk_Map'] = get_rolling(hist, ['Team ID', 'Map'], 'Atk_W')
+    hist['Roll_Def_Map'] = get_rolling(hist, ['Team ID', 'Map'], 'Def_W')
+
+    for side in ['A', 'B']:
+        hist_subset = hist[['Game ID', 'Team ID', 'Roll_Form', 'Roll_Map', 'Roll_RD', 'Roll_Atk_Map', 'Roll_Def_Map']]
+        matches = matches.merge(hist_subset, left_on=['Game ID', f'Team {side} ID'], right_on=['Game ID', 'Team ID'], how='left')
+        matches = matches.rename(columns={
+            'Roll_Form': f'T{side}_W', 'Roll_Map': f'T{side}_M', 'Roll_RD': f'T{side}_RD',
+            'Roll_Atk_Map': f'T{side}_Atk_M', 'Roll_Def_Map': f'T{side}_Def_M'
+        }).drop(columns='Team ID')
+
+    matches['Form_Win_Rate_Diff'] = matches['TA_W'] - matches['TB_W']
+    matches['Map_Win_Rate_Diff'] = matches['TA_M'] - matches['TB_M']
+    matches['Round_Diff'] = matches['TA_RD'] - matches['TB_RD']
+    matches['Map_Atk_Diff'] = matches['TA_Atk_M'] - matches['TB_Atk_M']
+    matches['Map_Def_Diff'] = matches['TA_Def_M'] - matches['TB_Def_M']
+    
+    return matches
+\end{lstlisting}

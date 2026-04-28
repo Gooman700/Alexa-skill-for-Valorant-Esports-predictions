@@ -44,9 +44,16 @@ Two primary methods for acquiring a suitable dataset were evaluated: manual crea
 
 Conversely, the use of an existing dataset requires an investigatory assessment of feature richness and data integrity. It is essential to ensure that the dataset captures the underlying relationships between match variables and the final outcome without introducing multicollinearity---a state where redundant features communicate identical information. Furthermore, any external data must be used in strict accordance with the original author's licensing and copyright terms.
 
-Given the significant time investment required for manual scraping, the acquisition of a comprehensive, pre-existing dataset was prioritised. A suitable dataset was identified and sourced from a repository on Kaggle \cite{ryanluong_dataset}. \autoref{tab:key-dataset-features} provides a data dictionary of the critical features extracted for this project. An exhaustive list of features provided with the dataset are listed in \autoref{tab:data-dictionary}.
+Given the significant time investment required for manual scraping, the acquisition of a comprehensive, pre-existing dataset was prioritised. A suitable dataset was identified and sourced from a repository on Kaggle \cite{ryanluong_dataset}. \autoref{tab:key-dataset-features} provides a data dictionary of the critical features extracted for this project. An exhaustive list of features provided with the dataset are listed in \autoref{tab:data-dictionary}. The data is structured into annual folders such as `vct_2025' representing independent yearly data. Each folder contains the IDs of each entity present within the data, such as players, teams, and matches, within a folder called `ids'. Additionally, there exists data pertaining to player statistics, match statistics, and agent statistics. Notably, a master folder `all_ids' contains files to record the ID mappings for every entity across all years, which will be useful in providing unique keys to merge tables on. A visual representation of the structure can be seen in \autoref{fig:dataset-folder-structure} below. Please note that the structure for years 2021 to 2024 are identical to 2025.
 
-\subsection*{Dataset Features}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{./images/databaseFolderStructure.png}
+    \caption{Folder structure for the sourced dataset. Key folders include all_ids, and the folder for each year.}
+    \label{fig:dataset-folder-structure}
+\end{figure}
+
+\subsection{Dataset Features}
 Features within the dataset are categorised into two primary domains: player-level and team-level metrics. Player-level features, such as `Average Combat Score (ACS)', provide an indication of the individual technical proficiency of the team's constituents. Team-level features, such as `Attacker Score', offer high-level insights into team dynamics and situational performance. In the following table, features denoted with `X' represent data collected for both competing teams (Team A and Team B) respectively.
 
 \begin{table}[H]

@@ -82,10 +82,54 @@ The final layer of evaluation focuses on qualitative satisfaction and the overal
 \section{Analysis}
 This section will cover the necessary implementation steps needed in order to fulfil the requirements stated in \autoref{tab:functional_req} and \autoref{tab:non_functional_req}. 
 
-\subsection{Data Pre-processing}
-The foundation of the predictive engine is the Valorant Champions Tour dataset sourced from Kaggle \cite{ryanluong_dataset}, which, as established in \autoref{tab:key-dataset-features}, spans professional match history from 2021 to 2025. A structural analysis of the source files reveals a consistent directory architecture across each annual folder, which facilitates the use of parameterised path references. By utilising variable strings (e.g., transitioning from \texttt{2021\_ids} to \texttt{2025\_ids}), a programmatic pipeline can be established to ingest multi-year data without manual intervention.
+\subsection{Key Dataset Tables}
+Analysis of the dataset revealed a subset of tables possessing high relational and predictive utility. These tables were categorised into two distinct groups based on their function: those serving as the primary source of predictive features, and those providing the foundational identifier mappings essential for consolidating said feature-rich tables. Besides a unique ID, the combination of match descriptors (\texttt{Tournament, Stage, Match Type, Match Name, Map}) is not guaranteed to provide a unique reference. For example, three games played in a match between teams Acend and Envy may resemble the following:
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lllll}
+\toprule
+\textbf{Tournament} & \textbf{Stage} & \textbf{Match Type} & \textbf{Match Name} & \textbf{Map} \\
+\midrule
+Valorant Champions 2021 & Group Stage & Winner's (A) & Acend vs Envy & Icebox \\
+Valorant Champions 2021 & Group Stage & Winner's (A) & Acend vs Envy & Haven \\
+Valorant Champions 2021 & Group Stage & Winner's (A) & Acend vs Envy & Icebox \\
+\bottomrule
+\end{tabular}
+\caption{Raw match data exhibiting non-unique map entries.}
+\label{tab:raw_match_data}
+\end{table}
+In this series, the map `Icebox' is played twice, rendering the combination of attributes non-unique. However, the first key table, \texttt{combined_matches_games_ids.csv}, provides the identifiers for each match and game, transforming the data into the following:
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{llll >{\columncolor{orange!30}}l l >{\columncolor{orange!30}}l}
+\toprule
+\textbf{Tournament} & \textbf{Stage} & \textbf{Match Type} & \textbf{Match Name} & \textbf{Match ID} & \textbf{Map} & \textbf{Game ID} \\
+\midrule
+Val. Champ. 21 & Group Stage & Winner's (A) & Acend vs Envy & 51282 & Icebox & 57948 \\
+Val. Champ. 21 & Group Stage & Winner's (A) & Acend vs Envy & 51282 & Haven & 57948 \\
+Val. Champ. 21 & Group Stage & Winner's (A) & Acend vs Envy & 51282 & Icebox & 57936 \\
+\bottomrule
+\end{tabular}
+\caption{Refined data structure utilising \texttt{Match ID} and \texttt{Game ID}.}
+\label{tab:refined_match_data}
+\end{table}
 
-To ensure relational integrity across the disparate tables, the project will utilise a Master ID system. Each entity type—including players, teams, and matches—is assigned a unique identifier that serves as a primary key. Before feature derivation can commence, these master tables must be verified for completeness; any missing identifiers would result in reference errors during the join operations.
+The \texttt{combined_matches_games_ids.csv} acts as the primary relational bridge. It maps match descriptors, such as \texttt{Match Name} and \texttt{Map}, to their unique IDs (e.g., \texttt{Match ID}, \texttt{Game ID}). This file is crucial for ensuring that performance data across the following sources can be unified into a single, cohesive record for every match-map instance. Although the following key files do not contain the IDs of the matches or games, they do contain the aforementioned descriptors, which can be used to find the corresponding ID in \texttt{combined_matches_games_ids.csv}. They also provide the high-granularity performance data required for feature engineering:
+
+\begin{itemize}
+\item \textbf{Match Scores (\texttt{map_scores.csv}):} This serves as the base table to build upon to produce the final feature set. It provides row-per-match performance metrics, and the primary outcome variables (scores and win/loss state) that the model aims to predict.
+\item \textbf{Player Overview (\texttt{overview.csv}):} This file contains a granular player-level structure, offering advanced metrics such as \texttt{Average Combat Score} (ACS) and \texttt{KAST} percentage, as discussed in \autoref{tab:key-dataset-features}.
+\item \textbf{Economic Statistics (\texttt{eco_stats.csv}):} This table provides round-level economic statistics, including the type of round (e.g., the first round of the game), and the outcome of the round. These statistics are contained within the features \texttt{Type} and \texttt{Won} respectively.
+\end{itemize}
+
+Before metrics from multiple tables can be consolidated, each source must adhere to the same attributes for referencing, by obtaining the IDs from \texttt{combined_matches_games_ids.csv}.
+
+\subsection{Data Pre-processing}
+The foundation of the predictive engine is the Valorant Champions Tour dataset sourced from Kaggle \cite{ryanluong_dataset}, which, as established in \autoref{fig:dataset-folder-structure}, spans professional match history from 2021 to 2025. A structural analysis of the source files reveals a consistent directory architecture across each annual folder, which facilitates the use of parameterised path references. By utilising variable strings (e.g., transitioning from \texttt{2021\_ids} to \texttt{2025\_ids}), a programmatic pipeline can be established to ingest multi-year data without manual intervention.
+
+To ensure relational integrity across the disparate tables, the project will utilise the master ID system already present. Each entity type---including players, teams, and matches---is assigned a unique identifier that serves as a primary key. Before feature derivation can commence, these master tables must be verified for completeness; any missing identifiers would result in reference errors during the join operations.
 
 The data preparation workflow will utilise the \textit{pandas} library \cite{pandas_site} to perform these relational operations. Data from individual years will be read into DataFrame objects and standardised to ensure consistent schema mapping. These DataFrames will be subsequently merged using the \texttt{concat()} function. A critical consideration during this merge is the mitigation of data redundancy; because professional players and teams often persist across multiple seasons, the union of annual tables inevitably introduces duplicate records. These will be identified and purged using the \texttt{drop\_duplicates()} function to ensure each primary key remains unique.
 
@@ -94,7 +138,7 @@ Furthermore, the dataset must be audited for data sparsity, often represented as
 \subsection{Feature engineering}
 Once the dataset has been ingested and validated for integrity, the project moves into the feature engineering phase. In this phase, raw match statistics must be transformed into a format that captures the ``form'' and ``momentum'' of the competing teams. To achieve this, a rolling average strategy will be implemented. Rather than providing the model with a static snapshot of a team's history, the system will calculate performance metrics (such as Win Rate, ACS, and KAST) over a sliding window of the previous $n$ matches, ensuring that the model's predictions are based on recent competitive standing rather than outdated historical data, since strategies in Valorant contantly evolve.
 
-The transformation process will also involve the calculation of ``Differential Features.'' Machine learning models, particularly tree-based ensembles, often benefit from seeing the relative strength between two competitors. Therefore, the implementation will involve calculating the difference between Team A and Team B for key metrics, such as \textit{Differential Average Combat Score}. This reduces the dimensionality of the input while highlighting the competitive gap between the two teams, which is a primary indicator of match outcomes.
+The transformation process will also involve the calculation of ``Differential Features.'' Machine learning models, particularly tree-based ensembles, often benefit from seeing the relative strength between two competitors. Therefore, the implementation will involve calculating the difference between Team A and Team B for key metrics. This reduces the dimensionality of the input while highlighting the competitive gap between the two teams, which is a primary indicator of match outcomes.
 
 \subsection{Model Development}
 With a structured table of rolling features and differentials established, the project will transition to the model engineering phase. This involves defining the architecture for the chosen supervised learning algorithms: Logistic Regression and Gradient Boosted Trees. The implementation will follow a train, test, tweak cycle, where initially, a baseline will be established using Logistic Regression to provide a point of comparison for the more complex ensemble model.

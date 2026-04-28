@@ -32,6 +32,37 @@
 \usepackage[acronyms,nonumberlist]{glossaries-extra}
 \usepackage{longtable}
 \usepackage{pdfpages}
+\usepackage{listings}
+\usepackage{underscore}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{pink}{rgb}{1.0,0.45,0.50}
+
+\lstdefinestyle{code}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegray},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{pink},
+    basicstyle=\sffamily\scriptsize,
+    frame=single,               
+    framesep=5pt,               
+    xleftmargin=10pt,           
+    xrightmargin=10pt,          
+    rulecolor=\color{black!30}, 
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=10pt,            
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    language=Python
+}
 
 % Suppress known harmless longtable split warning.
 \WarningFilter{latex}{Infinite glue shrinkage found in box being split}
