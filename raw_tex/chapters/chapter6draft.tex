@@ -55,37 +55,14 @@ The tables for the team mappings of name to ID, the IDs of tournament stages mat
 - now the tables are complete and the raw info is ready to be aggregated into more complex features
 
 \subsection{Feature Derivation}
-mention about the up-to-date rolling averages stored too
-- the all matches, overview, and eco tables are passed as params to a function calculate all features
-- `team a won' feature created as a binary
-- 4 functions for calculating each feature type - h2h, team form, player, eco
-- h2h func creates a new feature `Pair' made up of the sorted join of the two team ids which is a key for each team combination
-- new feature L won which is a binary flag of whether the left team of the join won
-- h2h base feature created, and since there aren't many results for h2h, expanding window is used, with the mean value of L won used as the result for h2h base
-- the result is mapped to team a's perspective by negating it from 1 if L is team B
-- finally, it is turned into a differential feature by multiplying it by 2 and then negating 1, making it between -1 and 1
-- calculate team form metric calculates Calculates Win\%, Map Win\%, RD, and Attacker/Defender Side Biases
-- two tables made, one for team 1 one for team 2
-- history table created as the concacontated t1 and t2
-- RD feature made
-- get rolling function defined to calculate the exponential weighted moving average
-- features calculated from this:
-    % hist['Roll_Form'] = get_rolling(hist, 'Team ID', 'Won')
-    % hist['Roll_Map'] = get_rolling(hist, ['Team ID', 'Map'], 'Won')
-    % hist['Roll_RD'] = get_rolling(hist, 'Team ID', 'RD')
-    % hist['Roll_Atk_Map'] = get_rolling(hist, ['Team ID', 'Map'], 'Atk_W')
-    % hist['Roll_Def_Map'] = get_rolling(hist, ['Team ID', 'Map'], 'Def_W')
-- features merged into the main table record for each game, renamed depending on team A or b
-- diffs calculated
-    % matches['Form_Win_Rate_Diff'] = matches['TA_W'] - matches['TB_W']
-    % matches['Map_Win_Rate_Diff'] = matches['TA_M'] - matches['TB_M']
-    % matches['Round_Diff'] = matches['TA_RD'] - matches['TB_RD']
-    % matches['Map_Atk_Diff'] = matches['TA_Atk_M'] - matches['TB_Atk_M']
-    % matches['Map_Def_Diff'] = matches['TA_Def_M'] - matches['TB_Def_M']
-- calculate player aggregates
-- calculate eco metrics
-- drop all columns but features and target
-- save as csv
+- Now that the all_matches table has been set up, the features defined in table feature summary were implemented.
+- In addition to these team-based features, player-based and eco-based features were decided as necessary to the model's predictive accuracy.
+- feature derivation broken down into four categories: 1. team combination stat (h2h) 2. individual team stats (the roll ones and map), player stats (ACS, KAST, first blood), and eco (pistol round win rate and eco round win rate)
+- h2h calculated by making a unique identifier for each team combination (the join of their IDs sorted lexicographically), then calculating the win rate of the left team. This is then mapped to team_a's win rate for each combination, and finally transformed into an unbiased differential feature.
+- For team stats, a new DataFrame is made with two rows per match, one from each team's perspective. 
+- Each stat: win rate, map-specific win rate, round win rate, map-specific attacking round win rate, map-specific defending-side win rate, is calculated as an exponentially weighted moving (EWM) average.
+- Each team specific stat is turned into a differential to describe the match instead
+- For each team, the players specific stat averages for ACS KAST and first blood are calculated for each player in the team, and then averaged to represent the team's average ACS KAST and first bloods. The values for team a and team b are then subtracted, resulting in the differential features.
 
 \section{Logistic Regression Model}
 

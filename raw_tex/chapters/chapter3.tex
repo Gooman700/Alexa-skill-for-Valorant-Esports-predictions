@@ -83,7 +83,8 @@ The final layer of evaluation focuses on qualitative satisfaction and the overal
 This section will cover the necessary implementation steps needed in order to fulfil the requirements stated in \autoref{tab:functional_req} and \autoref{tab:non_functional_req}. 
 
 \subsection{Key Dataset Tables}
-Analysis of the dataset revealed a subset of tables possessing high relational and predictive utility. These tables were categorised into two distinct groups based on their function: those serving as the primary source of predictive features, and those providing the foundational identifier mappings essential for consolidating said feature-rich tables. Besides a unique ID, the combination of match descriptors (\texttt{Tournament, Stage, Match Type, Match Name, Map}) is not guaranteed to provide a unique reference. For example, three games played in a match between teams Acend and Envy may resemble the following:
+\label{sub:key-tables}
+Analysis of the dataset revealed a subset of tables possessing high relational and predictive utility. These tables were categorised into two distinct groups based on their function: those serving as the primary source of predictive features, and those providing the identifier mappings essential for consolidating said feature-rich tables. Besides a unique ID, the combination of match descriptors (\texttt{Tournament, Stage, Match Type, Match Name, Map}) is not guaranteed to provide a unique reference. For example, three games played in a match between teams `Acend' and `Envy' might resemble the following:
 \begin{table}[H]
 \centering
 \small
@@ -119,12 +120,12 @@ Val. Champ. 21 & Group Stage & Winner's (A) & Acend vs Envy & 51282 & Icebox & 5
 The \texttt{combined_matches_games_ids.csv} acts as the primary relational bridge. It maps match descriptors, such as \texttt{Match Name} and \texttt{Map}, to their unique IDs (e.g., \texttt{Match ID}, \texttt{Game ID}). This file is crucial for ensuring that performance data across the following sources can be unified into a single, cohesive record for every match-map instance. Although the following key files do not contain the IDs of the matches or games, they do contain the aforementioned descriptors, which can be used to find the corresponding ID in \texttt{combined_matches_games_ids.csv}. They also provide the high-granularity performance data required for feature engineering:
 
 \begin{itemize}
-\item \textbf{Match Scores (\texttt{map_scores.csv}):} This serves as the base table to build upon to produce the final feature set. It provides row-per-match performance metrics, and the primary outcome variables (scores and win/loss state) that the model aims to predict.
+\item \textbf{Match Scores (\texttt{map_scores.csv}):} This serves as the base table to build upon to produce the final feature set. It provides a row per match, alongside the primary outcome variables (scores and win/loss state) that the model aims to predict.
 \item \textbf{Player Overview (\texttt{overview.csv}):} This file contains a granular player-level structure, offering advanced metrics such as \texttt{Average Combat Score} (ACS) and \texttt{KAST} percentage, as discussed in \autoref{tab:key-dataset-features}.
 \item \textbf{Economic Statistics (\texttt{eco_stats.csv}):} This table provides round-level economic statistics, including the type of round (e.g., the first round of the game), and the outcome of the round. These statistics are contained within the features \texttt{Type} and \texttt{Won} respectively.
 \end{itemize}
 
-Before metrics from multiple tables can be consolidated, each source must adhere to the same attributes for referencing, by obtaining the IDs from \texttt{combined_matches_games_ids.csv}.
+Before metrics from multiple tables can be consolidated, each source must adhere to the same attributes for referencing, by obtaining the IDs from \texttt{combined_matches_games_ids.csv}. The complete schemas for these tables can be found in \autoref{fig:tableSchema}.
 
 \subsection{Data Pre-processing}
 The foundation of the predictive engine is the Valorant Champions Tour dataset sourced from Kaggle \cite{ryanluong_dataset}, which, as established in \autoref{fig:dataset-folder-structure}, spans professional match history from 2021 to 2025. A structural analysis of the source files reveals a consistent directory architecture across each annual folder, which facilitates the use of parameterised path references. By utilising variable strings (e.g., transitioning from \texttt{2021\_ids} to \texttt{2025\_ids}), a programmatic pipeline can be established to ingest multi-year data without manual intervention.
