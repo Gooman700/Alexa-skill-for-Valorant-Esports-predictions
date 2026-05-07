@@ -72,7 +72,6 @@ all_matches = all_matches.astype({col: 'Int64' for col in all_matches.select_dty
 The culmination of this process is the consolidated `all_matches' master table. By establishing a row per match and embedding unique identifiers for both matches and teams, this table serves as the definitive fact base for the system. This structured integration not only resolves the ambiguity surrounding duplicate map instances but also provides a stable relational foundation. Consequently, the table is now prepared to be further enriched with new predictive features.
 
 \subsection{Feature Derivation}
-mention about the up-to-date rolling averages stored too
 With the `all_matches' master table established, the focus shifted to implementing the predictive features defined in the feature summary \autoref{tab:feature_summary}. Beyond standard performance indicators, it was determined that player-level and economic metrics were essential for improving the model's predictive accuracy. Consequently, the feature derivation pipeline was structured into four distinct categories:
 \begin{enumerate}
     \item \textbf{Head to Head Performance}
@@ -140,7 +139,7 @@ Finally, the player and economic tables provide a granular view of team proficie
 \begin{table}[H]
     \centering
     \small
-    \begin{tabular}{lp{10cm}}
+    \begin{tabular}{l>{\raggedright\arraybackslash}p{10cm}}
         \toprule
         \textbf{Feature Name} & \textbf{Description} \\
         \midrule
@@ -174,31 +173,64 @@ Finally, the player and economic tables provide a granular view of team proficie
 \end{table}
 
 \section{Logistic Regression Model}
+Prior to the addition of the player-level and economic features discussed in the previous section, a baseline Logistic Regression model was developed using the initial feature set defined in \autoref{tab:feature_summary}. The primary objective of this stage was to establish a proof-of-concept for the end-to-end system, ensuring that the data pipeline could successfully feed a model capable of generating real-time predictions.
+
+The dataset, at this stage consisting solely of team performance metrics, was partitioned using a standard 70/30 train-test split and fitted using the \texttt{scikit-learn} implementation of Logistic Regression. The initial model achieved an accuracy of 53\%. While this performance represents only a modest improvement over random baseline guessing, it provided a functionally complete model capable of being exported and integrated into the Alexa Skill architecture for system testing. Before further model optimisation took place, it was necessary to establish the Alexa Skill infrastructure---the interaction model and the Lambda Function---to facilitate a realistic test of the project.
 
 \section{Interaction Model}
-The skill, invoked by the name `valorant predictor', is built upon a structured interaction model designed to facilitate accurate entity resolution and conversational flow.
+The skill, invoked by the name `valorant predictor', is built upon a structured interaction model designed to enable accurate entity resolution and conversational flow. The interaction model was developed within the Alexa developer console, a web interface for managing owned Alexa skills.
 
 \subsection{Custom Slot Type: team}
-To ensure robust identification of competitive organisations, a custom slot type named \texttt{team} was implemented. This slot type acts as an enumerated list of value-ID pairs, mapping every professional team within the dataset to a unique canonical identifier. This identifier is essential for the backend, as it ensures that regardless of the linguistic variations in the user's speech, the system receives a consistent key for database queries.
+A custom slot type named \texttt{team} was defined within the interaction model, containing a comprehensive mapping of team names to their respective database IDs. This provides AVS with the data needed to identify that a user's phonetic request matches an existing ID.
 
-The values were populated programmatically using the Python script below, ensuring that the model remains synchronised with the underlying dataset. By defining a comprehensive set of synonyms—covering common mispronunciations and alternative spellings—the model significantly increases the likelihood of successful entity resolution.
-
-\subsection{Required and Built-In Intents}
-Required:
-AMAZON.CancelIntent
-AMAZON.HelpIntent
-AMAZON.StopIntent
-AMAZON.NavigateHomeIntent
-
-Built-In:
-AMAZON.FallbackIntent
-AMAZON.YesIntent
-AMAZON.NoIntent
+Additionally, synonyms---covering common mispronunciations and alternative spellings---for potentially ambiguous team names were generated with the use of Google Gemini. Due to the volume of teams (around 4000) it was decided that this task was well suited for the tool of generative AI. The usage of gen AI was in accordance with the university's guidelines, and is described in \autoref{app:genAI} as required by the University. These synonyms significantly increase the likelihood of successful entity resolution, reducing the chance of a user's valid request being misunderstood due to the team name used.
 
 \subsection{Prediction Intent and Slot Delegation}
-The core functionality is encapsulated within the \texttt{PredictMatchIntent}, which is supported by a diverse array of sample utterances (detailed in \autoref{tab:utterances}). Within these utterances, two mandatory slots, \texttt{team\_a} and \texttt{team\_b}, are defined using the \texttt{team} slot type.
+To encapsulate the core functionality behind the skill, an intent \texttt{MatchPredictionIntent} was created, and numerous sample utterances were designed and attached (detailed in \autoref{tab:utterances}). Within these utterances, two mandatory slots, \texttt{team\_a} and \texttt{team\_b}, are defined using the \texttt{team} slot type.
 
-To maintain strict control over the dialogue, these slots were configured as required fields. While the Alexa Skills Kit supports automatic dialogue delegation to manage slot filling, this project employs a manual delegation strategy. As justified in \autoref{chap:design}, this approach was chosen to circumvent the limitations of automated flows, allowing the backend logic to perform real-time validation of slot values. By intercepting the request-response cycle, the system can ensure that team names are not only recognised but are also validated against the current feature store, providing a seamless user experience that prevents invalid queries from progressing to the \gls{ml} inference stage.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{./images/matchPredictionIntentInteractionModel.png}
+    \caption{Screenshot of the Intent's utterances in the developer console}
+    \label{fig:matchPredictionIntentUtterances}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{./images/matchPredictionIntentSlots.png}
+    \caption{Screenshot of the Intent's slots in the developer console}
+    \label{fig:matchPredictionIntentSlots}
+\end{figure}
+
+To maintain strict control over the dialogue, these slots were configured as `required' fields. While the Alexa Skills Kit supports automatic dialogue delegation to manage slot filling, this project employs a manual delegation strategy, as justified in \autoref{chap:design}.
+
+\subsection{Required and Built-In Intents}
+In addition to the custom `MatchPredictionIntent', several built-in, and required intents are also present, providing useful boilerplate functionality, as well as a corpus of pre-loaded utterances for each. A table explaining the utility of these intents is below:
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabularx}{\textwidth}{@{} l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{3.5cm} @{}}
+        \toprule
+        \textbf{Intent Name} & \textbf{Description} & \textbf{Example Utterances} \\
+        \midrule
+        \texttt{AMAZON.CancelIntent} & Cancels the current action without closing the skill. Often used to back out of a prompt and return to a previous state. & `Cancel', `Never mind', `Forget it' \\
+        \midrule
+        \texttt{AMAZON.HelpIntent} & Provides the user with instructions on how to use the skill. The handler responds with a brief explanation of what the skill does and what the user can say next, keeping the session open. & `Help', `How do I use this?', `What can I say?' \\
+        \midrule
+        \texttt{AMAZON.StopIntent} & Exits the skill completely. The handler provides a brief goodbye message and ends the session. & `Stop', `Quit', `Shut up' \\
+        \midrule
+        \texttt{AMAZON.NavigateHomeIntent} & Specifically for Alexa devices with screens. It navigates the user away from the skill's visual interface and returns them to the device's main home screen. & `Go home', `Return to home screen' \\
+        \midrule
+        \texttt{AMAZON.FallbackIntent} & Acts as a safety net. It catches any user utterance that does not match any of the custom intents. Instead of the skill crashing or silently failing, the handler can prompt the user of the misunderstanding. & \textit{(Any phrase the skill isn't programmed to understand)} \\
+        \midrule
+        \texttt{AMAZON.YesIntent} & Handles positive affirmations. Used when the skill asks a direct yes/no question (e.g., `Would you like to hear another prediction?'). & `Yes', `Yeah', `Sure', `Okay' \\
+        \midrule
+        \texttt{AMAZON.NoIntent} & Handles negative responses. Used to capture a `no' to a direct question, enabling a clean exit from the skill. & `No', `Nope', `No thanks' \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Alexa Standard Intents Breakdown}
+    \label{tab:alexa_standard_intents}
+\end{table}
 
 \section{Lambda Function}
 \subsection{Developer Console and VS Code}
