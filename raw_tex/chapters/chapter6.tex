@@ -72,6 +72,7 @@ all_matches = all_matches.astype({col: 'Int64' for col in all_matches.select_dty
 The culmination of this process is the consolidated `all_matches' master table. By establishing a row per match and embedding unique identifiers for both matches and teams, this table serves as the definitive fact base for the system. This structured integration not only resolves the ambiguity surrounding duplicate map instances but also provides a stable relational foundation. Consequently, the table is now prepared to be further enriched with new predictive features.
 
 \subsection{Feature Derivation}
+\label{sub:featureDerivation}
 With the `all_matches' master table established, the focus shifted to implementing the predictive features defined in the feature summary \autoref{tab:feature_summary}. Beyond standard performance indicators, it was determined that player-level and economic metrics were essential for improving the model's predictive accuracy. Consequently, the feature derivation pipeline was structured into four distinct categories:
 \begin{enumerate}
     \item \textbf{Head to Head Performance}
@@ -172,10 +173,90 @@ Finally, the player and economic tables provide a granular view of team proficie
     \label{tab:finalFeatureSummary}
 \end{table}
 
+Finally, the most recent averaged features for every team were extracted and stored in a separate CSV file, indexed by the team's ID. This CSV facilitates the mapping of team IDs to their corresponding feature values within the Lambda Function.
+
 \section{Logistic Regression Model}
 Prior to the addition of the player-level and economic features discussed in the previous section, a baseline Logistic Regression model was developed using the initial feature set defined in \autoref{tab:feature_summary}. The primary objective of this stage was to establish a proof-of-concept for the end-to-end system, ensuring that the data pipeline could successfully feed a model capable of generating real-time predictions.
 
-The dataset, at this stage consisting solely of team performance metrics, was partitioned using a standard 70/30 train-test split and fitted using the \texttt{scikit-learn} implementation of Logistic Regression. The initial model achieved an accuracy of 53\%. While this performance represents only a modest improvement over random baseline guessing, it provided a functionally complete model capable of being exported and integrated into the Alexa Skill architecture for system testing. Before further model optimisation took place, it was necessary to establish the Alexa Skill infrastructure---the interaction model and the Lambda Function---to facilitate a realistic test of the project.
+The dataset, at this stage consisting solely of team performance metrics, was partitioned using a standard 70/30 train-test split and fitted using the \texttt{scikit-learn} implementation of Logistic Regression. The initial model achieved an accuracy of 53\%. While this performance represents only a modest improvement over random baseline guessing, it provided a functionally complete model capable of being exported and integrated into the Alexa Skill for system testing. Before further model optimisation took place, the interaction model and the Lambda Function were established to facilitate a realistic test of the project. Subsequently, the model was re-developed to achieve a higher accuracy.
+
+\section{Gradient-Boosted Tree Model}
+
+To produce a model with greater predictive accuracy, it became necessary to address the non-linear relationships inherent within the esports dataset. While linear models process features in isolation, a tree-based approach can understand complex feature interactions and non-linear thresholds (for instance, recognising that a high combat score is irrelevant if a team's economy conversion rate falls below a certain percentage). To capture these nuances, gradient-boosted decision trees were selected as the primary architecture for the final model.
+
+\subsection{scikit-learn and Deployment Constraints}
+The initial iteration of the gradient-boosted model was developed using the \texttt{scikit-learn} library's \texttt{GradientBoostingClassifier}. While the model trained successfully and demonstrated promising predictive capabilities locally, a critical infrastructure limitation was encountered during deployment. 
+
+The Alexa Skill's backend is hosted on AWS Lambda, which enforces a strict 250 MB unzipped deployment package size limit. Bundling the \texttt{scikit-learn} library, alongside its heavy mathematical dependencies (\texttt{NumPy} and \texttt{SciPy}) and the serialised \texttt{joblib} model file, comfortably exceeded this quota, resulting in AWS Lambda refusing the deployment. This bottleneck caused the exploration of alternative deployment avenues that did not rely on bulky external libraries.
+
+\subsection{XGBoost and the m2cgen Library}
+To bypass the Lambda size constraints, \texttt{m2cgen} (Model to Code Generator) was identified as an essential tool. \texttt{m2cgen} translates trained machine learning models into native, dependency free Python code---effectively converting a complex forest of decision trees into a single script of nested \texttt{if/else} statements. This eliminates the need to install any machine learning libraries on the AWS server.
+
+Initially, XGBoost was selected as the candidate algorithm, given its strong reputation in classification tasks (as discussed in \autoref{chap:technology survey}). However, upon attempting to compile the trained model, it was discovered that the specific implementation of XGBoost was incompatible with \texttt{m2cgen} at the required complexity. Further research into potential fixes for this issue only yielded confirmations of the incompatibility, alongside suggestions that a more lightweight framework, LightGBM, may be the answer.
+
+\subsection{LightGBM Implementation}
+LightGBM is Microsoft's open-source gradient-boosting algorithm. Unlike traditional boosting algorithms that grow trees level-wise (depth-first), LightGBM employs a leaf-wise (best-first) growth strategy. It chooses to grow the leaf with the maximum delta loss, which often results in better accuracy and faster training times. Crucially for this project, LightGBM is highly memory efficient, making the resulting \texttt{m2cgen} export much more manageable for the Lambda execution environment.
+
+Because leaf-wise growth is susceptible to overfitting on smaller datasets, the model was heavily constrained via hyperparameter tuning to ensure it generalised effectively to unseen matches. The final configuration used to train the model is detailed in \autoref{tab:lightgbm_hyperparameters}.
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabularx}{\textwidth}{@{} l l >{\raggedright\arraybackslash}X @{}}
+        \toprule
+        \textbf{Hyperparameter} & \textbf{Value} & \textbf{Description} \\
+        \midrule
+        \texttt{n\_estimators} & 150 & Number of trees. Kept relatively low to prevent over-complication of the model structure. \\
+        \midrule
+        \texttt{learning\_rate} & 0.05 & Slower learning rate to ensure the model learns broad trends gradually rather than jumping to conclusions and memorising noise. \\
+        \midrule
+        \texttt{max\_depth} & 4 & Strictly bounds vertical tree growth to prevent complex, memorised trees and avoid deep recursion limits in the exported code. \\
+        \midrule
+        \texttt{num\_leaves} & 15 & Constrains the horizontal growth of the tree to limit complexity further. \\
+        \midrule
+        \texttt{colsample\_bytree} & 0.8 & Introduces stochasticity by randomly hiding 20\% of features per tree, preventing over-reliance on dominant historical metrics. \\
+        \midrule
+        \texttt{subsample} & 0.8 & Randomly uses 80\% of training rows per tree to improve the model's ability to generalise to unseen data. \\
+        \midrule
+        \texttt{random\_state} & 42 & Ensures reproducibility of the training results. \\
+        \bottomrule
+    \end{tabularx}
+    \caption{LightGBM hyperparameter configuration.}
+    \label{tab:lightgbm_hyperparameters}
+\end{table}
+
+\subsubsection{Feature Selection}
+LightGBM natively calculates feature importances, providing transparency into the model's decision-making process. Analysis of these importances revealed multicollinearity and redundancy within the dataset. Specifically, \texttt{Form\_Win\_Rate\_Diff}, \texttt{Pistol\_Diff}, \texttt{Map\_Win\_Rate\_Diff}, and \texttt{KAST\_Diff} were identified as mathematically overlapping with more prominent features. 
+
+These variables were subsequently dropped from the training set, streamlining the model and forcing it to focus on non-redundant features. The final feature importances (\autoref{tab:feature_importances}) highlighted a strong preference for immediate firepower and economic efficiency.
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabular}{l c}
+        \toprule
+        \textbf{Feature} & \textbf{Importance Score} \\
+        \midrule
+        \texttt{Round\_Diff} & 377 \\
+        \midrule
+        \texttt{ACS\_Diff} & 348 \\
+        \midrule
+        \texttt{FB\_Diff} & 336 \\
+        \midrule
+        \texttt{Eco\_Diff} & 278 \\
+        \midrule
+        \texttt{Map\_Def\_Diff} & 224 \\
+        \midrule
+        \texttt{Map\_Atk\_Diff} & 167 \\
+        \midrule
+        \texttt{H2H\_Win\_Diff} & 144 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Final feature importances from the tuned LightGBM model.}
+    \label{tab:feature_importances}
+\end{table}
+
+The final model achieved a significantly improved 64\% accuracy on the testing data. Furthermore, it was successfully compiled via \texttt{m2cgen} into a single, lightweight Python file, completely resolving the AWS Lambda deployment constraints and ensuring execution.
 
 \section{Interaction Model}
 The skill, invoked by the name `valorant predictor', is built upon a structured interaction model designed to enable accurate entity resolution and conversational flow. The interaction model was developed within the Alexa developer console, a web interface for managing owned Alexa skills.
@@ -232,12 +313,180 @@ In addition to the custom `MatchPredictionIntent', several built-in, and require
     \label{tab:alexa_standard_intents}
 \end{table}
 
-\section{Lambda Function}
-\subsection{Developer Console and VS Code}
-\subsection{Intent Handler Creation}
-\subsection{Slot Validation}
 
-\section{Gradient-Boosted Tree Model}
-\subsection{XGBoost}
-\subsection{LightGBM}
-\subsection{Feature Analysis}
+\section{Lambda Function}
+The Lambda Function is a Python back-end hosted on AWS Lambda.
+\subsection{MatchPredictionIntent Handler}
+
+To give the \texttt{MatchPredictionIntent} specific executable logic, a custom handler class was created following the design pattern established in \autoref{sub:handlerDesignpattern}. This handler carries out a multi-tiered process encompassing user input validation, data retrieval, feature calculation, and model execution.
+
+The first stage of the handler relies on the \texttt{get\_resolved\_value} function, which validates the user's spoken team names against the skill's interaction model. If the required slot is completely missing, the function returns \texttt{None}. If the spoken word is heard but does not map to a known entity in the list of slot values, it returns the spoken value marked as unresolved. However, if a successful match is made---indicated by the \texttt{ER\_SUCCESS\_MATCH} status code---it extracts and returns the official team name and its corresponding unique ID.
+
+\begin{lstlisting}[style=code, caption={Helper function to resolve and validate user slot inputs.}]
+def get_resolved_value(slot):
+    # Check if the slot is completely missing or empty
+    if not slot or not slot.value:
+        return None 
+
+    # Check if the slot successfully resolved to a team ID
+    if slot.resolutions and slot.resolutions.resolutions_per_authority:
+        for authority in slot.resolutions.resolutions_per_authority:
+            if authority.status.code.value == "ER_SUCCESS_MATCH":
+                return {
+                    "id": authority.values[0].value.id,
+                    "name": authority.values[0].value.name
+                }
+                
+    # The slot has a spoken value, but it didn't match an ID
+    return {
+        "id": None, 
+        "name": slot.value, 
+        "unresolved": True
+    }
+\end{lstlisting}
+
+Within the handler's \texttt{handle} method, conversational dialogue is managed dynamically based on the results of this validation. If a team variable returns as \texttt{None}, the skill acknowledges the missed input and prompts the user to repeat the team name. If the variable is marked as unresolved, the skill acknowledges the heard name but explains that the team is not currently in the database. This provides a graceful fallback rather than a system crash.
+
+Once the slots are successfully resolved, the handler attempts to load the corresponding statistics for those teams. The data is retrieved from a pre-loaded dictionary, generated by the \texttt{load\_stats} function, which uses the resolved team IDs as primary keys to access recent performance metrics. These metrics are stored within the \texttt{team_stats} CSV file, created alongside the final feature set as described at the end of \autoref{sub:featureDerivation}. A final validation check ensures that the required values are returned; if the lookup is empty, the skill informs the user that whilst the team is recognised, their statistical data is unavailable at the moment.
+
+\begin{lstlisting}[style=code, caption={Function to load team statistics into memory using the Team ID as a key.}]
+def load_stats():
+    team_stats = {}
+    file_path = os.path.join(os.path.dirname(__file__), 'resources', 'team_stats.csv')
+    
+    with open(file_path, mode='r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # Map the ID to the rest of the data
+            team_stats[row['Team_ID']] = {
+                'RD': float(row['RD']),
+                'Atk_M': float(row['Atk_M']),
+                'Def_M': float(row['Def_M']),
+                'ACS': float(row['ACS']),
+                'FB': float(row['FB']),
+                'Eco': float(row['Eco'])
+            }
+
+    return team_stats
+\end{lstlisting}
+
+If all checks pass, the handler delegates the mathematical processing to the \texttt{pred\-ict\_match\_winner} method. By enforcing that the team with the lower numerical ID is always treated as the primary team, the system successfully removes any prediction bias that could arise from the arbitrary order in which the user spoke the team names. 
+
+The method then calculates the differential features between the two teams and passes them into the exported LightGBM \texttt{score} function. The resulting probabilities are evaluated to determine the predicted winner and the model's confidence percentage.
+
+\begin{lstlisting}[style=code, caption={Method to standardise input order, calculate feature differentials, and execute the prediction model.}]
+def predict_match_winner(self, team_a, team_b, data_a, data_b):
+    if team_a['id'] < team_b['id']:
+        team_one = team_a
+        team_two = team_b
+        data_one = data_a
+        data_two = data_b
+    else:
+        team_one = team_b
+        team_two = team_a
+        data_one = data_b
+        data_two = data_a
+
+    H2H_Win_Diff = 0.0
+    Round_Diff = data_one['RD'] - data_two['RD']
+    Map_Atk_Diff = data_one['Atk_M'] - data_two['Atk_M']
+    Map_Def_Diff = data_one['Def_M'] - data_two['Def_M']
+    ACS_Diff = data_one['ACS'] - data_two['ACS']
+    FB_Diff = data_one['FB'] - data_two['FB']
+    Eco_Diff = data_one['Eco'] - data_two['Eco']
+
+    features = [
+        H2H_Win_Diff,
+        Round_Diff,
+        Map_Atk_Diff,
+        Map_Def_Diff,
+        ACS_Diff,
+        FB_Diff,
+        Eco_Diff
+    ]
+
+    prediction_probs = score(features)
+    prob_team_one = prediction_probs[1]
+
+    if prob_team_one > 0.5:
+        winner_name = team_one['name']
+        confidence = prob_team_one * 100
+    else:
+        winner_name = team_two['name']
+        confidence = (1.0 - prob_team_one) * 100
+    return winner_name, confidence
+\end{lstlisting}
+
+Subsequently, the Lambda function handles the wording and formatting of the spoken response. It constructs a natural language string containing the predicted winner and the confidence percentage, and speaks this result back to the user. Finally, the handler updates the session's \texttt{last_action} attribute to `prediction_complete', and keeps the session open to allow for subsequent match predictions.
+
+\subsection{Built-in Handlers}
+
+To manage the natural flow of conversation, the skill utilises the built-in intents \texttt{AMAZON.YesIn\-tent} and \texttt{AMAZON.NoIntent}. These handlers are primarily designed to respond to the prompt issued at the end of the \texttt{MatchPredictionIntent}, where the user is asked if they would like to make another prediction.
+
+To achieve contextual awareness, the skill employs session attributes to track the state of the dialogue. As established in the previous subsection, when a prediction successfully completes, a \texttt{last\_action} attribute is temporarily saved to the session and flagged as `prediction\_complete'. The built-in handlers retrieve this attribute to understand the context of the user's affirmative or negative response.
+
+If the \texttt{YesIntentHandler} detects this flag, it clears the session attribute to reset the state and prompts the user to provide two new teams, smoothly initiating a new prediction loop. Conversely, if the user declines by triggering the \texttt{NoIntentHandler}, the skill clears the attribute, delivers a polite farewell message, and explicitly terminates the session using the \texttt{set\_should\_end\_session(True)} directive.
+
+Furthermore, should a user randomly say `Yes' or `No' out of context (i.e., when the \texttt{last\_action} flag is \texttt{None}), the handlers acknowledge the confusion and guide the user back to the skill's core functionality rather than silently failing or closing.
+
+\begin{lstlisting}[style=code, caption={Implementation of the Yes and No intent handlers using session attributes for contextual routing.}]
+class YesIntentHandler(AbstractRequestHandler):
+    """Handler for Yes Intent."""
+    def can_handle(self, handler_input):
+        # type: (HandlerInput) -> bool
+        return ask_utils.is_intent_name("AMAZON.YesIntent")(handler_input)
+
+    def handle(self, handler_input):
+        # type: (HandlerInput) -> Response
+        last_action = handler_input.attributes_manager.session_attributes.get("last_action")
+
+        if last_action == "prediction_complete":
+            handler_input.attributes_manager.session_attributes["last_action"] = None
+            speak_output = "Great! Which two teams are playing this time?"
+            reprompt = "Tell me the names of the two teams."
+        else:
+            speak_output = "I'm not sure what you're saying yes to. What can I help with?"
+            reprompt = "You can ask for a match prediction."
+        
+        return (
+            handler_input.response_builder
+                .speak(speak_output)
+                .ask(reprompt)
+                .response
+        )
+    
+class NoIntentHandler(AbstractRequestHandler):
+    """Handler for No Intent."""
+    def can_handle(self, handler_input):
+        # type: (HandlerInput) -> bool
+        return ask_utils.is_intent_name("AMAZON.NoIntent")(handler_input)
+
+    def handle(self, handler_input):
+        # type: (HandlerInput) -> Response
+        last_action = handler_input.attributes_manager.session_attributes.get("last_action")
+
+        if last_action == "prediction_complete":
+            handler_input.attributes_manager.session_attributes["last_action"] = None
+            speak_output = "No problem. Good luck with the matches! Goodbye."
+            return (
+                handler_input.response_builder
+                    .speak(speak_output)
+                    .set_should_end_session(True)
+                    .response
+            )
+        else:
+            speak_output = "I'm not sure what you're saying no to. You can ask me to predict a match, or say help."
+            return (
+                handler_input.response_builder
+                    .speak(speak_output)
+                    .ask("How can I help you?") # Keep session alive
+                    .response
+            )
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{./images/lambdaFolderStructure.png}
+    \caption{The folder structure of the Lambda package.}
+    \label{fig:lambdaFolderStructure}
+\end{figure}
