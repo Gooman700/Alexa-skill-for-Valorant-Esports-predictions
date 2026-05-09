@@ -226,9 +226,18 @@ Because leaf-wise growth is susceptible to overfitting on smaller datasets, the 
 \end{table}
 
 \subsubsection{Feature Selection}
-LightGBM natively calculates feature importances, providing transparency into the model's decision-making process. Analysis of these importances revealed multicollinearity and redundancy within the dataset. Specifically, \texttt{Form\_Win\_Rate\_Diff}, \texttt{Pistol\_Diff}, \texttt{Map\_Win\_Rate\_Diff}, and \texttt{KAST\_Diff} were identified as mathematically overlapping with more prominent features. 
+LightGBM natively calculates feature importances, providing transparency into the model's decision making process. Analysis of these importances revealed multicollinearity and redundancy within the dataset. Specifically, \texttt{Form\_Win\_Rate\_Diff}, \texttt{Pistol\_Diff}, \texttt{Map\_Win\_Rat\-e\_Diff}, and \texttt{KAST\_Diff} were identified as mathematically overlapping with more prominent features. 
 
-These variables were subsequently dropped from the training set, streamlining the model and forcing it to focus on non-redundant features. The final feature importances (\autoref{tab:feature_importances}) highlighted a strong preference for immediate firepower and economic efficiency.
+These variables were subsequently dropped from the training set, streamlining the model and forcing it to focus on non-redundant features. The final feature importances (\autoref{tab:feature_importances}) highlighted a strong preference for raw score and economic efficiency.
+
+\begin{lstlisting}[style=code, caption={Feature importance extraction from the tuned LightGBM model.}]
+feature_importances = pd.DataFrame({
+    'Feature': X.columns,
+    'Importance': model.feature_importances_
+}).sort_values(by='Importance', ascending=False)
+print("\nFeature Importances:")
+print(feature_importances)
+\end{lstlisting}
 
 \begin{table}[H]
     \centering
@@ -256,7 +265,117 @@ These variables were subsequently dropped from the training set, streamlining th
     \label{tab:feature_importances}
 \end{table}
 
-The final model achieved a significantly improved 64\% accuracy on the testing data. Furthermore, it was successfully compiled via \texttt{m2cgen} into a single, lightweight Python file, completely resolving the AWS Lambda deployment constraints and ensuring execution.
+\subsection{Testing the Model}
+In accordance with the evaluation strategies established in \autoref{chap:req_analysis}, the LightGBM model was tuned and tested against a 70\% training set, a 20\% hold-out testing set, and a 10\% final validation set. The model was evaluated against the testing set upon each hyperparameter tweak, with the goal of reaching the highest accuracy possible. The purpose of the validation set was to provide a final evaluation of the model on completely unseen data, ensuring that it has not been overfitted to the testing set.
+
+\begin{lstlisting}[style=code, caption={Training the final LightGBM model and exporting it to Python using m2cgen.}]
+import lightgbm as lgb
+import m2cgen as m2c
+
+# Training the LightGBM model
+model = lgb.LGBMClassifier(
+    n_estimators = 150,
+    max_depth = 4,
+    num_leaves = 15,
+    learning_rate = 0.05,
+    colsample_bytree = 0.8,
+    subsample = 0.8,
+    random_state=42
+).fit(X_train, y_train)
+\end{lstlisting}
+
+Upon the model reaching 59.84\% accuracy on the testing data, it was finally evaluated on the validation data, where the Accuracy, Precision, Recall, and F1 Score were calculated, alongside a confusion matrix:
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabular}{l c}
+        \toprule
+        \textbf{Metric} & \textbf{Score} \\
+        \midrule
+        Accuracy & 0.625562 \\
+        \midrule
+        Precision & 0.630635 \\
+        \midrule
+        Recall & 0.815772 \\
+        \midrule
+        F1 Score & 0.711355 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Performance metrics of the predictive model.}
+    \label{tab:model_metrics}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{./images/confusionMatrix.png}
+    \caption{Confusion matrix of the predictive model}
+    \label{fig:confusionMatrix}
+\end{figure}
+
+The final model achieved an impressive 71\% F1 Score on the validation data. Furthermore, it was successfully compiled via \texttt{m2cgen} into a single, lightweight Python file, completely resolving the AWS Lambda deployment constraints and ensuring execution:
+
+\begin{lstlisting}[style=code, caption={Exporting the model to Python using \texttt{m2cgen}}]
+# Export to Python
+python_code = m2c.export_to_python(model)
+
+with open("exported_model.py", "w") as f:
+    f.write(python_code)
+\end{lstlisting}
+
+\subsection{Comparing the Model}
+Due to the lack of existing \gls{vct} prediction models available on the internet, the model's predictions and confidence scores were compared against various bookmakers odds to evaluate the similarly in confidence. In the following set of images, the leftmost image portrays the odds which bookmakers are selling bets at, and the rightmost image portrays the prediction made by the system when given the same two teams. The odds are structured so that the left column of odds correspond to the team on the left, and vice-versa. The team with the lower number (lower returns) is expected by the bookmaker to have a greater chance of winning. A larger difference in each team's odds indicates a greater confidence in them.
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{./images/odds/100ThievesOdds.png}
+        \par\medskip\centering\textit{Bookmaker odds}
+    \end{minipage}\hfill
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{./images/odds/100Thieves.png}
+        \par\medskip\centering\textit{Prediction}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{./images/odds/cgnOdds.png}
+    \end{minipage}\hfill
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{./images/odds/cgn.png}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{./images/odds/enterpriseOdds.png}
+    \end{minipage}\hfill
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{./images/odds/enterprise.png}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{./images/odds/liquidOdds.png}
+    \end{minipage}\hfill
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{./images/odds/liquid.png}
+    \end{minipage}
+\end{figure}
+
+As depicted by the comparisons in the above images, the prediction model developed as part of this project exhibits a strong predictive utility, capable of not only predicting the `correct' team, but also agreeing with the bookmaker's confidence. Notably, for the match between CGN Esports and RIZON, the odds for CGN are significantly lower than the odds for RIZON, suggesting that CGN is much more likely to win. Similarly, when prompted with the same two teams, the Alexa skill predicted that CGN will win, and does so with a high confidence of 89\%. Furthermore, bookmakers predicted that the match between Team Liquid and Team Vitality will be very close, but lean towards Team Liquid winning. The Alexa skill predicted that Team Liquid would win, with 50\% confidence.
 
 \section{Interaction Model}
 The skill, invoked by the name `valorant predictor', is built upon a structured interaction model designed to enable accurate entity resolution and conversational flow. The interaction model was developed within the Alexa developer console, a web interface for managing owned Alexa skills.
@@ -312,7 +431,6 @@ In addition to the custom `MatchPredictionIntent', several built-in, and require
     \caption{Alexa Standard Intents Breakdown}
     \label{tab:alexa_standard_intents}
 \end{table}
-
 
 \section{Lambda Function}
 The Lambda Function is a Python back-end hosted on AWS Lambda.
@@ -489,4 +607,22 @@ class NoIntentHandler(AbstractRequestHandler):
     \includegraphics[width=0.5\linewidth]{./images/lambdaFolderStructure.png}
     \caption{The folder structure of the Lambda package.}
     \label{fig:lambdaFolderStructure}
+\end{figure}
+
+\section{Alexa Skill Testing}
+Adhering to the evaluation strategies established in \autoref{chap:req_analysis}, the Alexa Skill's execution time and resolved utterances were monitored through the use of AWS CloudWatch, providing insight into the performance of the skill. As seen in \autoref{fig:latency} below, the P50 (or median) response time was 1053ms, just over one second. The P90 (slower than average) reponse time was 1478ms. These values indicate that the Alexa Skill resolves the user's utterance, executes the Lambda Function, and returns as response, all in under two seconds, which comfortably remains below both the eight second limit, and the six second requirement.
+
+Additionally, utterances being resolved, and their confidence, were recorded and plotted. \autoref{fig:utterancesResolved} depicts the abundance of high confidence utterances. This shows that the interaction model contains a broad range of sample utterances which successfully capture the natural language associated with activating the \texttt{MatchPredictionIntent}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{./images/Latency.png}
+    \caption{P50 and P90 Endpoint Latency of the Alexa Skill.}
+    \label{fig:latency}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{./images/Intent Confidence by Utterance.png}
+    \caption{Number of High, Medium, and Low Confidence Utterances Resolved.}
+    \label{fig:utterancesResolved}
 \end{figure}
