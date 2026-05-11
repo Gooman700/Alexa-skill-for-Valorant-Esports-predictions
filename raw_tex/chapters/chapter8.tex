@@ -1,1 +1,11 @@
 \chapter{Conclusions}
+\section{Project Result}
+This project has successfully met its goal, providing an Alexa powered voice interface for users to interact with the underlying machine learning prediction model. The Alexa skill is capable of effectively resolving user utterances to extract key slot values such as the names of the teams. The skill provides meaningful errors, and prompts the user to correct any ambiguity. Upon a valid request, the skill will retrieve the team-specific features, and activate the prediction model using them, prosifying the result and speaking it back to the user.
+
+\section{Chosen Technologies}
+The use of Amazon's Alexa for this project due to it not requiring a corresponding android app (unlike Google Actions) has proven useful, as the time constraints surrounding the design and implementation would have led to a less than satisfactory app being developed.
+
+The choice of machine learning algorithms both during development and the final LightGBM have provided great value to the final product. The initial Logistic Regression model allowed early development of the Lambda Function and Interaction Model, despite the lackluster performance. The final LightGBM model provides fast predictions, and performs above the required 60\% accuracy. Additionally, its F1 score of 71\% alongside the mutual predictions shared with online bookmakers speak towards its potential as more than just a gimmick.
+
+\section{What's Next?}
+From here, the VCT Predictor Alexa skill can be submitted to Amazon for certification, which would release it from beta into the real marketplace as an actual product. The potential upgrades discussed in \autoref{sec:futureWork} would then be implemented, alongside actual user feedback gathered through the skill's page on the skill store.

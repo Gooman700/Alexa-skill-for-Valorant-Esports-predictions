@@ -301,7 +301,7 @@ print("Prediction:", prediction[0])
 \end{lstlisting}
 
 \section{Interaction Model}
-The skill, invoked by the name `valorant predictor', is built upon a structured interaction model designed to enable accurate entity resolution and conversational flow. The interaction model was developed within the Alexa developer console, a web interface for managing owned Alexa skills.
+The skill, invoked by the name `VCT Predictor', is built upon a structured interaction model designed to enable accurate entity resolution and conversational flow. The interaction model was developed within the Alexa developer console, a web interface for managing owned Alexa skills.
 
 \subsection{Custom Slot Type: team}
 A custom slot type named \texttt{team} was defined within the interaction model, containing a comprehensive mapping of team names to their respective database IDs. This provides AVS with the data needed to identify that a user's phonetic request matches an existing ID.
@@ -554,7 +554,7 @@ To test the system as an end-user, manual testing was employed with edge cases a
     \bottomrule
     \endlastfoot
     
-    1 & Speak ``Alexa, open Valorant Predictor''. & The skill activates, and speaks ``Hello, try asking `Who is going to win between team A and team B?' ''. & Pass \\
+    1 & Speak ``Alexa, open VCT Predictor''. & The skill activates, and speaks ``Hello, try asking `Who is going to win between team A and team B?' ''. & Pass \\
     \midrule
     
     2 & Request ``help''. & The skill speaks ``Hi! I use machine learning to predict Valorant match outcomes. I look at win rates, round wins, and specific map history for both teams. Just say the names of two teams to get started.'', and keeps the session open. & Pass \\
