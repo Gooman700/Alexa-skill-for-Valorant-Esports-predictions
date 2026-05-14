@@ -57,7 +57,7 @@ Due to this project having to validate slot values within the user's request, th
     \caption{The ``happy path'' for a user generating a prediction and a history request.}
     \label{fig:happy_path}
 \end{figure}
-\autoref{tab:EdgeCaseHandling} provides an analysis of the information acquired as a result of the storyboards designed. The edge case mitigations specified are designed to cover all possible erroneous user inputs, inlcuding combinations of different errors. The sequence of validation checks executed on a user's request is depicted in \autoref{fig:validationFlowchart}. The mitigations range from trivial resolutions such as reprompting the user to answer again, to more case-specific, complex ones. For example, in the instance of a match prediction request with only one missing slot, Alexa must identify the issue and ask the user to repeat only the missing value, without discarding the previously obtained slot values.
+\autoref{tab:EdgeCaseHandling} provides an analysis of the information acquired as a result of the storyboards designed. The edge case mitigations specified are designed to cover all possible erroneous user inputs, including combinations of different errors. The sequence of validation checks executed on a user's request is depicted in \autoref{fig:validationFlowchart}. The mitigations range from trivial resolutions such as re-prompting the user to answer again, to more case-specific, complex ones. For example, in the instance of a match prediction request with only one missing slot, Alexa must identify the issue and ask the user to repeat only the missing value, without discarding the previously obtained slot values.
 \begin{table}[H]
     \centering
     \small
@@ -80,7 +80,7 @@ Due to this project having to validate slot values within the user's request, th
         \midrule
         \textbf{Unexpected Slot Values} & 
         The team names do not resolve to existing teams stored in the database, or an unsupported statistic is requested. & 
-        Alexa informs the user that she heard the value, but does not recognize it within the database. \\
+        Alexa informs the user that she heard the value, but does not recognise it within the database. \\
         \addlinespace
         
         \midrule
@@ -158,7 +158,7 @@ The feature transformation pipeline is designed to convert static match results 
 
 To further refine the model's understanding of dominance, the system will derive the \texttt{Roll\_RD} (Rolling Round Differential) feature. This metric provides a higher fidelity of information than a simple win-loss binary, as it allows a logical distinction of teams that won a match by one round, and teams that won a match by 13 rounds, one of which clearly showing superior ability. Furthermore, the design incorporates a \texttt{H2H\_Win\_Diff} (Head-to-Head Win Differential) variable to account for specific playstyle mismatches or psychological advantages between two specific teams. In professional \gls{vct} play, certain teams may prove much stronger depending on their opponent.
 
-Finally, the environmental context of the match will be handled through the processing of the 12 `Map\_name' categorical features (one for each map). Using one-hot encoding, the system will allow the supervised learning algorithms to learn map-specific biases and weightings. By combining these rolling performance indicators with categorical map data, the design ensures that the model evaluates the competition not just on who the teams are, but on how they are currently performing within the specific tactical constraints of the chosen map. This process collapses multidimensional historical data into a single input vector for the ML model.
+Finally, the environmental context of the match will be handled through the processing of the 12 `Map\_name' categorical features (one for each map). Using one-hot encoding, the system will allow the supervised learning algorithms to learn map-specific biases and weightings. By combining these rolling performance indicators with categorical map data, the design ensures that the model evaluates the competition not just on whom the teams are, but on how they are currently performing within the specific tactical constraints of the chosen map. This process collapses multidimensional historical data into a single input vector for the ML model.
 
 \subsection{Dimensionality Reduction}
 After the aforementioned features have been derived, the dataset must be checked for multicollinearity. Failure to do so could result in multiple independent variables being highly correlated, wasting the computational resources available. This state can lead to an overfit model that is overly sensitive to noise and fails to generalise to unseen match data.
@@ -182,7 +182,7 @@ Logistic Regression will be implemented as the primary baseline model. While Log
 To capture the non-linear interactions between features, the system will utilise gradient boosted trees. This method is strong against outliers and capable of performing internal feature selection, which could prove helpful for handling the inherent noise within esports data. The Scikit-Learn library will be used for model implementation due to its comprehensive suite of ML algorithms and evaluation tools.
 
 \subsection{Training Strategy}
-The model's hyper-parameters, specifically for the gradient boosted model---including learning\_r\-ate, n\_estimators, and max\_depth---will be methodically stepped until an optimal value is reached. This will ensure that accuracy is not lost due to sub-optimal hyper-parameter values. One hyper-parameter will be refined at a time, until all are optimised. During training, the individual feature weights given by the model can be examined to inform future design changes for the feature set. Existing features can be discarded, and new features can be introduced, negating the impact of multicollinearity and improving the explained variance coverage.
+The model's hyperparameters, specifically for the gradient boosted model---including learning\_r\-ate, n\_estimators, and max\_depth---will be methodically stepped until an optimal value is reached. This will ensure that accuracy is not lost due to suboptimal hyperparameter values. One hyperparameter will be refined at a time, until all are optimised. During training, the individual feature weights given by the model can be examined to inform future design changes for the feature set. Existing features can be discarded, and new features can be introduced, negating the impact of multicollinearity and improving the explained variance coverage.
 
 \subsection{Model Serialisation}
 To integrate the trained model into the logic layer, the final model will be serialised using the \texttt{joblib} library. This process converts the trained Python object into a persistent \texttt{.joblib} file format. This file will be packaged within the AWS Lambda deployment, allowing the Lambda Function to load the model into memory instantly upon invocation, bypassing the need for a training phase during the user's request.

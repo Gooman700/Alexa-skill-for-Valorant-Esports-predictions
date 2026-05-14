@@ -3,7 +3,7 @@ This chapter details the implementation of the system, documenting the rationale
 
 \section{Dataset Manipulation}
 \subsection{Updating the Dataset}
-Upon inspection of the \texttt{combined_matches_games_ids} table discussed in \autoref{chap:req_analysis}, it became apparent that during the addition of 2025 VCT statistics folder by the author, the \texttt{all_ids} folder had failed to be updated to reflect any new data. Thus to maintain relational integrity, 2025 data was added to the master ID tables. Firstly, new player records and their associated identifiers were extracted from the 2025 dataset and appended to the master player IDs table. To ensure uniqueness, this operation was followed by a de-duplication step, which identified and removed redundant entries while preserving new additions from 2025.
+Upon inspection of the \texttt{combined_matches_games_ids} table discussed in \autoref{chap:req_analysis}, it became apparent that during the addition of 2025 VCT statistics folder by the author, the \texttt{all_ids} folder had failed to be updated to reflect any new data. Thus to maintain relational integrity, 2025 data was added to the master ID tables. Firstly, new player records and their associated identifiers were extracted from the 2025 dataset and appended to the master player IDs table. To ensure uniqueness, this operation was followed by a deduplication step, which identified and removed redundant entries while preserving new additions from 2025.
 \begin{lstlisting}[style=code, caption={Introducing new 2025 VCT data into the master ID tables.}]
 path = Path(__file__).parent.parent / "dataset"
 path_2025 = path / "vct_2025" / "ids"
@@ -17,10 +17,10 @@ combined_player_ids = pd.concat([all_players_ids, new_player_ids]).drop_duplicat
 combined_player_ids.to_csv(new_path / "combined_player_ids.csv", index=False)
 \end{lstlisting}
 
-Following the update to the player table, an identical approach was applied to the remaining ID-bearing tables. Most importantly, the IDs for teams, matches, and games were each subjected to the same process. By executing the equivalent concatenation and de-duplication operations across these tables, the system was updated to ensure that all relational mapping files were synchronised with the 2025 dataset. The complete code listing for this process is displayed in \autoref{lst:all_matchesCreation}.
+Following the update to the player table, an identical approach was applied to the remaining ID-bearing tables. Most importantly, the IDs for teams, matches, and games were each subjected to the same process. By executing the equivalent concatenation and deduplication operations across these tables, the system was updated to ensure that all relational mapping files were synchronised with the 2025 dataset. The complete code listing for this process is displayed in \autoref{lst:all_matchesCreation}.
 
 \subsection{Merge IDs}
-As explained in \autoref{sub:key-tables}, the primary base for the dataset is the \texttt{map\_scores.csv} file, To create a longitudinal dataset, each annual \texttt{map\_scores} file was appended to an `all\_matches' master table, as seen in \autoref{lst:all_matchesCreation}. The overview and eco_stats files were also subjected to the same process. Once again, it it worth noting that the complete schemas for each table are defined in \autoref{fig:tableSchema}.
+As explained in \autoref{sub:key-tables}, the primary base for the dataset is the \texttt{map\_scores.csv} file, To create a longitudinal dataset, each annual \texttt{map\_scores} file was appended to an `all\_matches' master table, as seen in \autoref{lst:all_matchesCreation}. The overview and eco_stats files were also subjected to the same process. Once again, it is worth noting that the complete schemas for each table are defined in \autoref{fig:tableSchema}.
 
 \begin{lstlisting}[style=code, caption={Consolidating all five years worth of statistics for maps_scores, overview, and eco_stats}, label={lst:all_matchesCreation}]
 all_maps: list[pd.DataFrame] = []
@@ -75,7 +75,7 @@ The culmination of this process is the consolidated `all_matches' master table. 
 \label{sub:featureDerivation}
 With the `all_matches' master table established, the focus shifted to implementing the predictive features defined in the feature summary \autoref{tab:feature_summary}. Beyond standard performance indicators, it was determined that player-level and economic metrics were essential for improving the model's predictive accuracy. Consequently, the feature derivation pipeline was structured into four distinct categories:
 \begin{enumerate}
-    \item \textbf{Head to Head Performance}
+    \item \textbf{Head-to-Head Performance}
     \item \textbf{Individual Team Performance} 
     \item \textbf{Player-level Performance}
     \item \textbf{Round-type Outcomes}
@@ -135,7 +135,7 @@ matches['Map_Atk_Diff'] = matches['TA_Atk_M'] - matches['TB_Atk_M']
 matches['Map_Def_Diff'] = matches['TA_Def_M'] - matches['TB_Def_M']
 \end{lstlisting}
 
-Finally, the player and economic tables provide a granular view of team proficiency. For player stats, the system aggregates \texttt{ACS}, \texttt{KAST}, and \texttt{First Bloods} for each individual on the team, calculating the team's match average. Similarly, economic metrics are derived from round-by-round data, tracking pistol round and low-buy success. As with the team metrics, these aggregates are passed through the same EWMA pipeline and converted into differential features, resulting in a robust, multi-dimensional dataset for predictive inference. The final features comprising the dataset can be seen in the table below:
+Finally, the player and economic tables provide a granular view of team proficiency. For player stats, the system aggregates \texttt{ACS}, \texttt{KAST}, and \texttt{First Bloods} for each individual on the team, calculating the team's match average. Similarly, economic metrics are derived from round-by-round data, tracking pistol round and low-buy success. As with the team metrics, these aggregates are passed through the same EWMA pipeline and converted into differential features, resulting in a robust, multidimensional dataset for predictive inference. The final features comprising the dataset can be seen in the table below:
 
 \begin{table}[H]
     \centering
@@ -327,7 +327,7 @@ To encapsulate the core functionality behind the skill, an intent \texttt{MatchP
 To maintain strict control over the dialogue, these slots were configured as `required' fields. While the Alexa Skills Kit supports automatic dialogue delegation to manage slot filling, this project employs a manual delegation strategy, as justified in \autoref{chap:design}.
 
 \subsection{Required and Built-In Intents}
-In addition to the custom `MatchPredictionIntent', several built-in, and required intents are also present, providing useful boilerplate functionality, as well as a corpus of pre-loaded utterances for each. A table explaining the utility of these intents is below:
+In addition to the custom `MatchPredictionIntent', several built-in, and required intents are also present, providing useful boilerplate functionality, as well as a corpus of preloaded utterances for each. A table explaining the utility of these intents is below:
 
 \begin{table}[H]
     \centering
@@ -388,7 +388,7 @@ def get_resolved_value(slot):
 
 Within the handler's \texttt{handle} method, conversational dialogue is managed dynamically based on the results of this validation. If a team variable returns as \texttt{None}, the skill acknowledges the missed input and prompts the user to repeat the team name. If the variable is marked as unresolved, the skill acknowledges the heard name but explains that the team is not currently in the database. This provides a graceful fallback rather than a system crash.
 
-Once the slots are successfully resolved, the handler attempts to load the corresponding statistics for those teams. The data is retrieved from a pre-loaded dictionary, generated by the \texttt{load\_stats} function, which uses the resolved team IDs as primary keys to access recent performance metrics. These metrics are stored within the \texttt{team_stats} CSV file, created alongside the final feature set as described at the end of \autoref{sub:featureDerivation}. A final validation check ensures that the required values are returned; if the lookup is empty, the skill informs the user that whilst the team is recognised, their statistical data is unavailable at the moment.
+Once the slots are successfully resolved, the handler attempts to load the corresponding statistics for those teams. The data is retrieved from a preloaded dictionary, generated by the \texttt{load\_stats} function, which uses the resolved team IDs as primary keys to access recent performance metrics. These metrics are stored within the \texttt{team_stats} CSV file, created alongside the final feature set as described at the end of \autoref{sub:featureDerivation}. A final validation check ensures that the required values are returned; if the lookup is empty, the skill informs the user that whilst the team is recognised, their statistical data is unavailable at the moment.
 
 \begin{lstlisting}[style=code, caption={Function to load team statistics into memory using the Team ID as a key.}]
 def load_stats():
@@ -655,4 +655,4 @@ In addition to manually testing the system, the functional requirements establis
 \end{longtable}
 }
 
-Notably, three requirements failed. Two of these were `Should' have requirements, and one was a `Could' have requirement. The failure of these requirements is due to the time contraints associated with the project, where these requirements were deemed unessential to the completion of the project and consequently unprioritised.
+Notably, three requirements failed. Two of these were `Should' have requirements, and one was a `Could' have requirement. The failure of these requirements is due to the time constraints associated with the project, where these requirements were deemed unessential to the completion of the project and consequently unprioritised.

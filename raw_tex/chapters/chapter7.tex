@@ -54,7 +54,7 @@ with open("exported_model.py", "w") as f:
 \end{lstlisting}
 
 \subsection{Comparing the Model}
-Due to the lack of existing \gls{vct} prediction models available on the internet, the model's predictions and confidence scores were compared against various bookmakers odds to evaluate the similarly in confidence. In the following set of images, the leftmost image portrays the odds which bookmakers are selling bets at, and the rightmost image portrays the prediction made by the system when given the same two teams. The odds are structured so that the left column of odds correspond to the team on the left, and vice-versa. The team with the lower number (lower returns) is expected by the bookmaker to have a greater chance of winning. A larger difference in each team's odds indicates a greater confidence in them.
+Due to the lack of existing \gls{vct} prediction models available on the internet, the model's predictions and confidence scores were compared against various bookmakers odds to evaluate the similarity in confidence. In the following set of images, the leftmost image portrays the odds which bookmakers are selling bets at, and the rightmost image portrays the prediction made by the system when given the same two teams. The odds are structured so that the left column of odds corresponds to the team on the left, and vice versa. The team with the lower number (lower returns) is expected by the bookmaker to have a greater chance of winning. A larger difference in each team's odds indicates a greater confidence in them.
 
 \begin{figure}[H]
     \centering
@@ -109,7 +109,7 @@ Due to the lack of existing \gls{vct} prediction models available on the interne
 As depicted by the comparisons in the above images, the prediction model developed as part of this project exhibits a strong predictive utility, capable of not only predicting the `correct' team, but also agreeing with the bookmaker's confidence. Notably, for the match between CGN Esports and RIZON, the odds for CGN are significantly lower than the odds for RIZON, suggesting that CGN is much more likely to win. Similarly, when prompted with the same two teams, the Alexa skill predicted that CGN will win, and does so with a high confidence of 89\%. Furthermore, bookmakers predicted that the match between Team Liquid and Team Vitality will be very close, but lean towards Team Liquid winning. The Alexa skill predicted that Team Liquid would win, with 50\% confidence.
 
 \section{Alexa Skill Results}
-Adhering to the evaluation strategies established in \autoref{chap:req_analysis}, the Alexa Skill's execution time and resolved utterances were monitored through the use of AWS CloudWatch, providing insight into the performance of the skill. As seen in \autoref{fig:latency} below, the P50 (or median) response time was 1053ms, just over one second. The P90 (slower than average) reponse time was 1478ms. These values indicate that the Alexa Skill resolves the user's utterance, executes the Lambda Function, and returns as response, all in under two seconds, which comfortably remains below both the eight second limit, and the six second requirement.
+Adhering to the evaluation strategies established in \autoref{chap:req_analysis}, the Alexa Skill's execution time and resolved utterances were monitored through the use of AWS CloudWatch, providing insight into the performance of the skill. As seen in \autoref{fig:latency} below, the P50 (or median) response time was 1053ms, just over one second. The P90 (slower than average) response time was 1478ms. These values indicate that the Alexa Skill resolves the user's utterance, executes the Lambda Function, and returns as response, all in under two seconds, which comfortably remains below both the eight-second limit, and the six-second requirement.
 
 Additionally, utterances being resolved, and their confidence, were recorded and plotted. \autoref{fig:utterancesResolved} depicts the abundance of high confidence utterances. This shows that the interaction model contains a broad range of sample utterances which successfully capture the natural language associated with activating the \texttt{MatchPredictionIntent}.
 
@@ -163,7 +163,7 @@ The non-functional requirements established in \autoref{tab:non_functional_req} 
     5 & Maintain session state to facilitate follow-up inquiries. & Should & Pass \\
     \midrule
     
-    6 & Robustness against minor phonetical variations in team name pronunciation. & Should & Pass \\
+    6 & Robustness against minor phonetic variations in team name pronunciation. & Should & Pass \\
 
 \end{longtable}
 }
@@ -175,9 +175,9 @@ Following system implementation, a user evaluation questionnaire was distributed
 The purpose of the questionnaire was to gather target users' likes, dislikes, and suggestions for the skill through the use of 5-point Likert Scales and free text responses. The 5-point Likert Scales ranged from 1 (strongly disagree) to 5 (strongly agree).
 
 \subsection{Questionnaire Results}
-The reponses for each 5-point Likert Scale question were consolidated into corresponding pie charts, as depicted in \autoref{fig:questionnaireResults} below. Notably, out of the eight participants, all responses were either a four or a five---or a somewhat agree and strongly agree. This suggests that the skill appeals to the intended users, providing utility and/or entertainment.
+The responses for each 5-point Likert Scale question were consolidated into corresponding pie charts, as depicted in \autoref{fig:questionnaireResults} below. Notably, out of the eight participants, all responses were either a four or a five---or a somewhat agree and strongly agree. This suggests that the skill appeals to the intended users, providing utility and/or entertainment.
 
-One such response that all participants agreed upon was that `Alexa prompts [them] in a way [they] understand when something went wrong'. This reponse indicates that the slot validation implemented in \autoref{sub:slotValidation} works well, and the spoken responses provide relevant details to the user.
+One such response that all participants agreed upon was that `Alexa prompts [them] in a way [they] understand when something went wrong'. This response indicates that the slot validation implemented in \autoref{sub:slotValidation} works well, and the spoken responses provide relevant details to the user.
 
 \begin{figure}[H]
     \centering
@@ -216,7 +216,7 @@ Furthermore, the free text responses enabled the participants to elucidate their
     \item Participants agreed that prompts were descriptive and easy to follow.
     \item One participant appreciated that the skill doesn't constantly require confirmations (e.g., `I heard that you wanted to make a prediction for NRG and Sentinels, is that correct?').
     \item Participants mentioned that the skill can sometimes get confused between teams with similar names, especially when referring to them by a nickname.
-    \item One participant suggested implementing the ability to ask for a team lineup.
+    \item One participant suggested implementing the ability to ask for a team line-up.
 \end{itemize}
 
 To improve the interaction model's ability to resolve a team name correctly, additional synonyms would need to be included within the `team' slot type's values.
@@ -228,4 +228,4 @@ Using Cochran's formula as outlined by Kotrlik\cite{kotrlik2001organizational}, 
 \label{sec:futureWork}
 The final product fulfilled this project's goal of creating a voice-activated machine learning model capable of predicting the outcome of VCT matches. Even so, the routes opened up by the work completed here leave much to expand upon, with potential to transition the VCT Predictor into a VCT Assistant; for example, the skill could be equipped with further functionality, more intents, and integration with external applications.
 
-The first priority would be to expand upon the list of synonyms attributed to each team, reducing the number of mis-resolved teams by increasing the coverage of individual nicknames. Secondly, extra intents building upon the existing data would be implemented to provide a richer user experience; for example, the ability to request a team's historical results as stated in \autoref{tab:requirements_evaluation} \#12. Finally, external services would be integrated into the skill to enable real-time updates on game statistics. Multiple API endpoints are available online which can be queried to receive a JSON object of in-progess VCT games, of which the corresponding data can be extracted and utilised to enhance the model's predictions of these games.
+The first priority would be to expand upon the list of synonyms attributed to each team, reducing the number of misresolved teams by increasing the coverage of individual nicknames. Secondly, extra intents building upon the existing data would be implemented to provide a richer user experience; for example, the ability to request a team's historical results as stated in \autoref{tab:requirements_evaluation} \#12. Finally, external services would be integrated into the skill to enable real-time updates on game statistics. Multiple API endpoints are available online which can be queried to receive a JSON object of in-progess VCT games, of which the corresponding data can be extracted and utilised to enhance the model's predictions of these games.
