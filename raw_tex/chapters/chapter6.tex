@@ -52,7 +52,7 @@ all_matches = all_matches.merge(
 all_matches = all_matches.drop(columns=['Map_Rank'])
 \end{lstlisting}
 
-With the matches identified, the pipeline integrates team identifiers to facilitate the rolling statistics calculations described in \autoref{sub:featureStorage}. Using \texttt{combined\_team\_ids.csv}, the pipeline maps text team names to standardised database IDs. This involves a two-stage join to attribute distinct IDs to both Team A and Team B:
+With the matches identified, the pipeline integrated team identifiers to facilitate the rolling statistics calculations described in \autoref{sub:featureStorage}. Using \texttt{combined\_team\_ids.csv}, the pipeline mapped text team names to standardised database IDs. This involved a two-stage join to attribute distinct IDs to both Team A and Team B:
 
 \begin{lstlisting}[style=code, caption={Merging the team IDs into all_matches for Team A and Team B}]
 # Merge the Team IDs into the table
@@ -69,7 +69,7 @@ all_matches = all_matches.rename(columns={"Team ID": "Team B ID"}).drop(columns=
 all_matches = all_matches.astype({col: 'Int64' for col in all_matches.select_dtypes('float64').columns})
 \end{lstlisting}
 
-The culmination of this process is the consolidated `all_matches' master table. By establishing a row per match and embedding unique identifiers for both matches and teams, this table serves as the definitive fact base for the system. This structured integration not only resolves the ambiguity surrounding duplicate map instances but also provides a stable relational foundation. Consequently, the table is now prepared to be further enriched with new predictive features.
+The culmination of this process was the consolidated `all_matches' master table. By establishing a row per match and embedding unique identifiers for both matches and teams, this table served as the definitive fact base for the system. This structured integration not only resolved the ambiguity surrounding duplicate map instances but also provided a stable relational foundation. Consequently, the table was then prepared to be further enriched with new predictive features.
 
 \subsection{Feature Derivation}
 \label{sub:featureDerivation}
@@ -81,13 +81,13 @@ With the `all_matches' master table established, the focus shifted to implementi
     \item \textbf{Round-type Outcomes}
 \end{enumerate}
 
-The head-to-head (H2H) category consists of only one feature: the head-to-head win differential. This feature, ranging between -1 and 1, quantifies the historical advantage between specific team combinations. To ensure consistency, a unique identifier is generated for each combination of teams by concatenating their lexicographically sorted \texttt{Team ID}s:
+The head-to-head (H2H) category consisted of only one feature: the head-to-head win differential. This feature, ranging between -1 and 1, quantified the historical advantage between specific team combinations. To ensure consistency, a unique identifier was generated for each combination of teams by concatenating their lexicographically sorted \texttt{Team ID}s:
 \begin{lstlisting}[style=code, caption={Unique team-combination key created}]
 # Create a unique key for the two teams (alphabetical)
 matches['Pair'] = matches.apply(lambda x: "_".join(sorted([str(x['Team A ID']), str(x['Team B ID'])])), axis=1)
 \end{lstlisting}
 
-The win rate for the `left' team in this pair is then calculated, and mapped to \texttt{Team A}'s perspective:
+The win rate for the `left' team in this pair was then calculated, and mapped to \texttt{Team A}'s perspective:
 \begin{lstlisting}[style=code, caption={Calculate all time mean for left team win rate, mapping the value to Team A's perspective}]
 matches['L_Won'] = matches.apply(
     lambda x: x['Team A Won'] if str(x['Team A ID']) < str(x['Team B ID']) else (1 - x['Team A Won']), axis=1
@@ -102,12 +102,12 @@ matches['Team_A_H2H'] = matches.apply(
 )
 \end{lstlisting}
 
-Finally, it is transformed into an unbiased differential feature scaled between -1 and 1, where -1 represents 100\% win rate for \texttt{Team B}, and 1 represents 100\% win rate for \texttt{Team A}:
+Finally, it was transformed into an unbiased differential feature scaled between -1 and 1, where -1 represents 100\% win rate for \texttt{Team B}, and 1 represents 100\% win rate for \texttt{Team A}:
 \begin{lstlisting}[style=code, caption={Transform Team A specific metric into a differential}]
 matches['H2H_Win_Diff'] = (2 * matches['Team_A_H2H'].fillna(0.5)) - 1
 \end{lstlisting}
 
-To compute team-based performance, the pipeline generates a specialised \texttt{hist} DataFrame containing two rows per match---one for each team. This allows for the calculation of performance indicators, including overall win rates, map-specific win rates, round differentials, and side-specific (Attacker/Defender) win rates. These features are calculated using an exponentially weighted moving average (EWMA) with a span of 15 matches, which prioritises recent performance while smoothing out any anomalies.
+To compute team-based performance, the pipeline generated a specialised \texttt{hist} DataFrame containing two rows per match---one for each team. This allowed for the calculation of performance indicators, including overall win rates, map-specific win rates, round differentials, and side-specific (Attacker/Defender) win rates. These features were calculated using an exponentially weighted moving average (EWMA) with a span of 15 matches, which prioritised recent performance while smoothing out any anomalies.
 \begin{lstlisting}[style=code, caption={Calculating the rolling average for each team}]
 def get_rolling(df: pd.DataFrame, group_cols, target_col, span=15):
     return df.groupby(group_cols)[target_col].transform(lambda x: x.shift(1).ewm(span=span, adjust=False).mean())
@@ -118,7 +118,7 @@ hist['Roll_Atk_Map'] = get_rolling(hist, ['Team ID', 'Map'], 'Atk_W')
 hist['Roll_Def_Map'] = get_rolling(hist, ['Team ID', 'Map'], 'Def_W')
 \end{lstlisting}
 
-These absolute values are subsequently converted into differential features, representing the competitive gap between the two contesting teams.
+These absolute values were subsequently converted into differential features, representing the competitive gap between the two contesting teams.
 
 \begin{lstlisting}[style=code, caption={Convert team specific features into differential features}]
 for side in ['A', 'B']:
@@ -135,7 +135,7 @@ matches['Map_Atk_Diff'] = matches['TA_Atk_M'] - matches['TB_Atk_M']
 matches['Map_Def_Diff'] = matches['TA_Def_M'] - matches['TB_Def_M']
 \end{lstlisting}
 
-Finally, the player and economic tables provide a granular view of team proficiency. For player stats, the system aggregates \texttt{ACS}, \texttt{KAST}, and \texttt{First Bloods} for each individual on the team, calculating the team's match average. Similarly, economic metrics are derived from round-by-round data, tracking pistol round and low-buy success. As with the team metrics, these aggregates are passed through the same EWMA pipeline and converted into differential features, resulting in a robust, multidimensional dataset for predictive inference. The final features comprising the dataset can be seen in the table below:
+Finally, the player and economic tables provided a granular view of team proficiency. For player stats, the system aggregated \texttt{ACS}, \texttt{KAST}, and \texttt{First Bloods} for each individual on the team, calculating the team's match average. Similarly, economic metrics were derived from round-by-round data, tracking pistol round and low-buy success. As with the team metrics, these aggregates were passed through the same EWMA pipeline and converted into differential features, resulting in a robust, multidimensional dataset for predictive inference. The final features comprising the dataset can be seen in the table below:
 
 \begin{table}[H]
     \centering
@@ -173,7 +173,7 @@ Finally, the player and economic tables provide a granular view of team proficie
     \label{tab:finalFeatureSummary}
 \end{table}
 
-Finally, the most recent averaged features for every team were extracted and stored in a separate CSV file, indexed by the team's ID. This CSV facilitates the mapping of team IDs to their corresponding feature values within the Lambda Function.
+Finally, the most recent averaged features for every team were extracted and stored in a separate CSV file, indexed by the team's ID. This CSV facilitated the mapping of team IDs to their corresponding feature values within the Lambda Function.
 
 \section{Logistic Regression Model}
 Prior to the addition of the player-level and economic features discussed in the previous section, a baseline Logistic Regression model was developed using the initial feature set defined in \autoref{tab:feature_summary}. The primary objective of this stage was to establish a proof-of-concept for the end-to-end system, ensuring that the data pipeline could successfully feed a model capable of generating real-time predictions.
@@ -181,7 +181,6 @@ Prior to the addition of the player-level and economic features discussed in the
 The dataset, at this stage consisting solely of team performance metrics, was partitioned using a standard 70/30 train-test split and fitted using the \texttt{scikit-learn} implementation of Logistic Regression. The initial model achieved an accuracy of 53\%. While this performance represents only a modest improvement over random baseline guessing, it provided a functionally complete model capable of being exported and integrated into the Alexa Skill for system testing. Before further model optimisation took place, the interaction model and the Lambda Function were established to facilitate a realistic test of the project. Subsequently, the model was re-developed to achieve a higher accuracy.
 
 \section{Gradient-Boosted Tree Model}
-
 To produce a model with greater predictive accuracy, it became necessary to address the non-linear relationships inherent within the esports dataset. While linear models process features in isolation, a tree-based approach can understand complex feature interactions and non-linear thresholds (for instance, recognising that a high combat score is irrelevant if a team's economy conversion rate falls below a certain percentage). To capture these nuances, gradient-boosted decision trees were selected as the primary architecture for the final model.
 
 \subsection{scikit-learn and Deployment Constraints}
@@ -306,10 +305,10 @@ The skill, invoked by the name `VCT Predictor', is built upon a structured inter
 \subsection{Custom Slot Type: team}
 A custom slot type named \texttt{team} was defined within the interaction model, containing a comprehensive mapping of team names to their respective database IDs. This provides AVS with the data needed to identify that a user's phonetic request matches an existing ID.
 
-Additionally, synonyms---covering common mispronunciations and alternative spellings---for potentially ambiguous team names were generated with the use of Google Gemini. Due to the volume of teams (around 4000) it was decided that this task was well suited for the tool of generative AI. The usage of gen AI was in accordance with the university's guidelines, and is described in \autoref{app:genAI} as required by the University. These synonyms significantly increase the likelihood of successful entity resolution, reducing the chance of a user's valid request being misunderstood due to the team name used.
+Additionally, synonyms---covering common mispronunciations and alternative spellings---for potentially ambiguous team names were generated with the use of Google Gemini. Due to the volume of teams (around 4000) it was decided that this task was well suited for the tool of generative artificial intelligence. The usage of this technology was in strict accordance with the university's guidelines, and is described in \autoref{app:genAI}. These synonyms significantly increased the likelihood of successful entity resolution, reducing the chance of a user's valid request being misunderstood due to the team name used.
 
 \subsection{Prediction Intent and Slot Delegation}
-To encapsulate the core functionality behind the skill, an intent \texttt{MatchPredictionIntent} was created, and numerous sample utterances were designed and attached (detailed in \autoref{tab:utterances}). Within these utterances, two mandatory slots, \texttt{team\_a} and \texttt{team\_b}, are defined using the \texttt{team} slot type.
+To encapsulate the core functionality behind the skill, an intent \texttt{MatchPredictionIntent} was created, and numerous sample utterances were designed and attached (detailed in \autoref{tab:utterances}). Within these utterances, two mandatory slots, \texttt{team\_a} and \texttt{team\_b}, were defined using the \texttt{team} slot type.
 
 \begin{figure}[H]
     \centering
