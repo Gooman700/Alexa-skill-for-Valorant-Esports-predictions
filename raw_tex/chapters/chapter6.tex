@@ -20,7 +20,7 @@ combined_player_ids.to_csv(new_path / "combined_player_ids.csv", index=False)
 Following the update to the player table, an identical approach was applied to the remaining ID-bearing tables. Most importantly, the IDs for teams, matches, and games were each subjected to the same process. By executing the equivalent concatenation and deduplication operations across these tables, the system was updated to ensure that all relational mapping files were synchronised with the 2025 dataset. The complete code listing for this process is displayed in \autoref{lst:all_matchesCreation}.
 
 \subsection{Merge IDs}
-As explained in \autoref{sub:key-tables}, the primary base for the dataset is the \texttt{map\_scores.csv} file, To create a longitudinal dataset, each annual \texttt{map\_scores} file was appended to an `all\_matches' master table, as seen in \autoref{lst:all_matchesCreation}. The overview and eco_stats files were also subjected to the same process. Once again, it is worth noting that the complete schemas for each table are defined in \autoref{fig:tableSchema}.
+As explained in \autoref{sub:key-tables}, the primary base for the dataset is the \texttt{map\_scores.csv} file, To create a longitudinal dataset, each annual \texttt{map\_scores} file was appended to an \texttt{all\_matches} master table, as seen in \autoref{lst:all_matchesCreation}. The \texttt{overview} and \texttt{eco_stats} files were also subjected to the same process. Once again, it is worth noting that the complete schemas for each table are defined in \autoref{fig:tableSchema}.
 
 \begin{lstlisting}[style=code, caption={Consolidating all five years worth of statistics for maps_scores, overview, and eco_stats}, label={lst:all_matchesCreation}]
 all_maps: list[pd.DataFrame] = []
@@ -37,7 +37,7 @@ df_overview = pd.concat(all_overview, ignore_index=True)
 df_eco = pd.concat(all_eco, ignore_index=True)
 \end{lstlisting}
 
-To introduce unique identifiers to the data, the \texttt{combined\_matches\_games\_ids.csv} was utilised as a secondary source. However, merging these files posed a challenge. The combination of \texttt{Tournament}, \texttt{Stage}, \texttt{Match Type}, \texttt{Match Name}, and \texttt{Map} was not strictly unique in scenarios where the same map was played multiple times within a single series. To resolve this, a \texttt{Map\_Rank} column was introduced. By applying a cumcount() function grouped by the aforementioned fields, the system assigned a sequential rank to each occurrence, creating a unique composite key for merging:
+To introduce unique identifiers to the data, the \texttt{combined\_matches\_games\_ids.csv} was utilised as a secondary source. However, merging these files posed a challenge. The combination of \texttt{Tournament}, \texttt{Stage}, \texttt{Match Type}, \texttt{Match Name}, and \texttt{Map} was not strictly unique in scenarios where the same map was played multiple times within a single series. To resolve this, a \texttt{Map\_Rank} column was introduced. By applying a \texttt{cumcount()} function grouped by the aforementioned fields, the system assigned a sequential rank to each occurrence, creating a unique composite key for merging:
 
 \begin{lstlisting}[style=code, caption={Utilising the date ordering of identical records to assign a unique identifier. This identifier is used as a composite key for merging with the IDs table}]
 # Unique identifier for matches played on the same map
@@ -69,11 +69,11 @@ all_matches = all_matches.rename(columns={"Team ID": "Team B ID"}).drop(columns=
 all_matches = all_matches.astype({col: 'Int64' for col in all_matches.select_dtypes('float64').columns})
 \end{lstlisting}
 
-The culmination of this process was the consolidated `all_matches' master table. By establishing a row per match and embedding unique identifiers for both matches and teams, this table served as the definitive fact base for the system. This structured integration not only resolved the ambiguity surrounding duplicate map instances but also provided a stable relational foundation. Consequently, the table was then prepared to be further enriched with new predictive features.
+The culmination of this process was the consolidated \texttt{all_matches} master table. By establishing a row per match and embedding unique identifiers for both matches and teams, this table served as the definitive fact base for the system. This structured integration not only resolved the ambiguity surrounding duplicate map instances but also provided a stable relational foundation. Consequently, the table was then prepared to be further enriched with new predictive features.
 
 \subsection{Feature Derivation}
 \label{sub:featureDerivation}
-With the `all_matches' master table established, the focus shifted to implementing the predictive features defined in the feature summary \autoref{tab:feature_summary}. Beyond standard performance indicators, it was determined that player-level and economic metrics were essential for improving the model's predictive accuracy. Consequently, the feature derivation pipeline was structured into four distinct categories:
+With the \texttt{all_matches} master table established, the focus shifted to implementing the predictive features defined in the feature summary \autoref{tab:feature_summary}. Beyond standard performance indicators, it was determined that player-level and economic metrics were essential for improving the model's predictive accuracy. Consequently, the feature derivation pipeline was structured into four distinct categories:
 \begin{enumerate}
     \item \textbf{Head-to-Head Performance}
     \item \textbf{Individual Team Performance} 
@@ -326,7 +326,7 @@ To encapsulate the core functionality behind the skill, an intent \texttt{MatchP
 To maintain strict control over the dialogue, these slots were configured as `required' fields. While the Alexa Skills Kit supports automatic dialogue delegation to manage slot filling, this project employs a manual delegation strategy, as justified in \autoref{chap:design}.
 
 \subsection{Required and Built-In Intents}
-In addition to the custom `MatchPredictionIntent', several built-in, and required intents are also present, providing useful boilerplate functionality, as well as a corpus of preloaded utterances for each. A table explaining the utility of these intents is below:
+In addition to the custom \texttt{MatchPredictionIntent}, the interaction model includes both built-in intents and required intents. Built-in intents are optional, pre-defined intents that developers can include to provide common, reusable behaviours (for example, handling `yes`/`no` responses or offering help). Required intents are mandatory pre-defined intents that the Alexa platform expects every skill to implement (such as stopping or cancelling a session). Both types supply useful boilerplate functionality and a set of preloaded example utterances. A table explaining the utility of these intents is below:
 
 \begin{table}[H]
     \centering
